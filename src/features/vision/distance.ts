@@ -14,6 +14,18 @@ export type Target = {
   box: { x: number; y: number; w: number; h: number }
 }
 
+// Typical real-world widths in metres, a second estimate that survives seated people and legs cut off by the frame.
+const REAL_WIDTH: Record<TargetClass, number> = {
+  person: 0.5,
+  car: 1.8,
+  motorcycle: 0.8,
+  bicycle: 0.6,
+  bus: 2.5,
+  truck: 2.4,
+  dog: 0.4,
+  cow: 0.8,
+}
+
 // Typical real-world heights in metres. The whole distance estimate rests on these guesses.
 const REAL_HEIGHT: Record<TargetClass, number> = {
   person: 1.7,
@@ -27,7 +39,9 @@ const REAL_HEIGHT: Record<TargetClass, number> = {
 }
 
 const K_KEY = 'secondsight.k'
-export const DEFAULT_K = 1.3
+// K = 1 / (2·tan(vertical FOV / 2)). A phone's portrait rear camera is about 65 to 75 degrees → 0.7 to 0.78.
+// The old 1.3 came from a laptop webcam and read every distance 1.8x too far on real footage.
+export const DEFAULT_K = 0.75
 export function loadK(): number {
   try {
     const k = Number(localStorage.getItem(K_KEY))
@@ -60,6 +74,16 @@ function isApproaching(key: string, ratio: number, now: number): boolean {
   return old !== undefined && ratio / old.ratio > 1.2
 }
 
+// A box must be seen in 3 consecutive frames before it can be spoken; reflections and decals rarely survive that.
+const seen = new Map<string, { n: number; t: number }>()
+const PERSIST_FRAMES = 3
+function persisted(key: string, now: number): boolean {
+  const e = seen.get(key)
+  const n = e && now - e.t < 400 ? e.n + 1 : 1
+  seen.set(key, { n, t: now })
+  return n >= PERSIST_FRAMES
+}
+
 // Every kept detection with its distance and side, for the scan-once summary.
 export function analyseAll(detections: Detection[], frameW: number, frameH: number, k: number): Target[] {
   const out: Target[] = []
@@ -68,10 +92,18 @@ export function analyseAll(detections: Detection[], frameW: number, frameH: numb
     const bb = d.boundingBox
     if (!label || !bb || !(label in REAL_HEIGHT)) continue
     const ratio = bb.height / frameH
+    const wRatio = bb.width / frameW
     if (ratio < 0.04) continue
-    // A box filling the frame both ways is a vehicle right at the lens; the formula alone would still say 3 to 4 m.
-    const fillsFrame = ratio >= 0.95 && bb.width >= 0.9 * frameW
-    const distance = fillsFrame ? 1.0 : (REAL_HEIGHT[label] * k) / ratio
+    // Slivers touching a frame edge are half-seen things or reflections; a real passer-by is wider than that.
+    const touchesEdge = bb.originX <= 1 || bb.originX + bb.width >= frameW - 1
+    if (touchesEdge && wRatio < 0.08) continue
+    // Two estimates, keep the NEARER: height (standing, full body) and width (seated, legs cut off). Errors go the safe way.
+    const byHeight = (REAL_HEIGHT[label] * k) / ratio
+    const byWidth = (REAL_WIDTH[label] * k * (frameH / frameW)) / wRatio
+    let distance = Math.min(byHeight, byWidth)
+    // Something filling most of the frame is within reach, whatever the formula says.
+    if (ratio >= 0.6 || wRatio >= 0.8) distance = Math.min(distance, 1.4)
+    else if (ratio >= 0.4) distance = Math.min(distance, 2.9)
     const cx = bb.originX + bb.width / 2
     const side: Side = cx < frameW / 3 ? 'left' : cx > (2 * frameW) / 3 ? 'right' : 'ahead'
     const target: Target = {
@@ -96,7 +128,7 @@ export function analyse(
   k: number,
   now: number
 ): Target | null {
-  const all = analyseAll(detections, frameW, frameH, k)
+  const all = analyseAll(detections, frameW, frameH, k).filter(t => persisted(`${t.label}:${t.side}`, now))
   for (const t of all) t.approaching = isApproaching(`${t.label}:${t.side}`, t.box.h / frameH, now)
   let best: Target | null = null
   for (const t of all) {
