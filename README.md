@@ -8,7 +8,6 @@ MediaPipe and ONNX Runtime (WebAssembly) inside the APK.
 
 **[SecondSight-v1.0.apk](https://github.com/dinathreddynarla/hackathon-team-d-second-sight/releases/download/v1.0/SecondSight-v1.0.apk)**
 (about 80 MB, from the [v1.0 release](https://github.com/dinathreddynarla/hackathon-team-d-second-sight/releases/tag/v1.0)).
-Install steps and fixes for "App not installed" are under [Building and sharing the APK](#building-and-sharing-the-apk).
 
 ## Prerequisites
 
