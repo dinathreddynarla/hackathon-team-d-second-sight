@@ -79,6 +79,9 @@ const en = {
     shortcutHint:
       'Hold both volume keys to open Second Sight with the camera on. Opens Android’s accessibility settings.',
     batteryGroup: 'Screen and battery',
+    walls: 'Warn about walls and obstacles (experimental)',
+    wallsOn: 'On. Uses a second model and more battery; detection may slow down.',
+    wallsOff: 'Off. People, vehicles, animals and road signs are still announced.',
     dim: 'Dim the screen while watching',
     dimOn: 'On. Saves battery. The screen stays on while the camera runs.',
     dimOff: 'Off. Full brightness while the camera runs.',
@@ -187,6 +190,9 @@ const te: Strings = {
     shortcutHint:
       'రెండు వాల్యూమ్ కీలు నొక్కి పట్టుకుంటే కెమెరా ఆన్‌తో సెకండ్ సైట్ తెరుచుకుంటుంది. ఆండ్రాయిడ్ యాక్సెసిబిలిటీ సెట్టింగ్స్ తెరుస్తుంది.',
     batteryGroup: 'స్క్రీన్ మరియు బ్యాటరీ',
+    walls: 'గోడలు, అడ్డంకుల హెచ్చరిక (ప్రయోగాత్మకం)',
+    wallsOn: 'ఆన్. రెండో మోడల్ వాడుతుంది, బ్యాటరీ ఎక్కువ ఖర్చవుతుంది.',
+    wallsOff: 'ఆఫ్. వ్యక్తులు, వాహనాలు, జంతువులు, రోడ్డు బోర్డులు చెబుతూనే ఉంటుంది.',
     dim: 'చూస్తున్నప్పుడు స్క్రీన్ తగ్గించు',
     dimOn: 'ఆన్. బ్యాటరీ ఆదా. కెమెరా నడుస్తున్నంత సేపు స్క్రీన్ ఆన్‌లో ఉంటుంది.',
     dimOff: 'ఆఫ్. కెమెరా నడుస్తున్నప్పుడు పూర్తి వెలుగు.',

@@ -4,7 +4,7 @@ import { forgetWarning, warn, type Lang } from '../speech/speech'
 import type { Target } from '../vision/distance'
 import type { Nearness } from './depthWorker'
 
-const EVERY_MS = 1000
+const EVERY_MS = 1500 // the heaviest model: leave the CPU to the hazard detector in between
 const NEAR = 0.8 // ahead zone at least 80% as near as the floor one metre away: something within ~1.6 m
 // A side counts as free only when clearly open (an open office reads 0.1 to 0.25) and far less near than ahead,
 // twice in a row. Glass, blur and low furniture fooled a looser rule 2 times in 5, so otherwise the word is 'stop'.

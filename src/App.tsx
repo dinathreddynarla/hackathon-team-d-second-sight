@@ -48,7 +48,7 @@ export function App() {
   const detection = useDetection(camera.videoRef, canvasRef, running && !alertBusy, lang)
   const { model } = detection
   useSigns(camera.videoRef, running && !alertBusy, lang)
-  useObstacles(camera.videoRef, running && !alertBusy, lang, detection.targetRef)
+  useObstacles(camera.videoRef, running && !alertBusy && settings.walls, lang, detection.targetRef)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [setupOpen, setSetupOpen] = useState(!settings.setupDone)
   const lastTapRef = useRef(0)
@@ -347,6 +347,8 @@ export function App() {
         langs={langs}
         dim={settings.dim}
         onDim={dim => update({ dim })}
+        walls={settings.walls}
+        onWalls={walls => update({ walls })}
         sosNumbers={settings.sosNumbers}
         k={detection.k}
         fps={detection.fps}

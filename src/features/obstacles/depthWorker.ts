@@ -3,8 +3,10 @@
 // is worn at chest height. A zone as near as that floor has something solid in it about a step away.
 import * as ort from 'onnxruntime-web/wasm'
 
-const W = 196 // multiples of 14 (the model's patch size), portrait like the camera
-const H = 252
+// Multiples of 14 (the model's patch size), portrait like the camera. 196x252 took ~1.5 s on an iQOO Neo 10;
+// this is 43% of the pixels.
+const W = 126
+const H = 168
 const MEAN = [0.485, 0.456, 0.406]
 const STD = [0.229, 0.224, 0.225]
 
