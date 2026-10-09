@@ -34,6 +34,8 @@ and is handled without looking. Speech is the main channel; the screen confirms 
 - Start / Stop is one large control at the bottom of the screen, found by touch.
 - After a fall that is not cancelled, or when help is asked for, up to three emergency contacts get an SMS with the
   location, then are phoned in order until one answers. It needs a SIM and signal.
+- It says the colour of a traffic light in view, and never whether to cross.
+- In the dark it lights the phone's torch. If no emergency contact can be reached it sounds an alarm for people nearby.
 - It does not recognise rain, puddles or smoke. It says when the camera view is washed out, and when several people
   are in view.
 - The screen shows the offline proof: "Offline", with the model already on the phone.

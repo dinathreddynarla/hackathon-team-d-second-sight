@@ -3,14 +3,17 @@ import { Geolocation } from '@capacitor/geolocation'
 
 type SetupPlugin = {
   openVoiceInstall(): Promise<void>
+  // Resolves once the network has taken the message; rejects when it could not be sent, or nothing is heard in time.
   sendSms(options: { to: string; text: string }): Promise<void>
+  alarmVolume(options: { on: boolean }): Promise<void>
   call(options: { to: string }): Promise<void>
   consumeAutostart(): Promise<{ autostart: boolean }>
   setWatching(options: { on: boolean; dim: boolean }): Promise<void>
   openAccessibilitySettings(): Promise<void>
   readText(options: { image: string }): Promise<{ text: string }>
-  // Inherited from Capacitor's Plugin class: asks for the SEND_SMS permission declared in SetupPlugin.java.
-  requestPermissions(): Promise<unknown>
+  // Inherited from Capacitor's Plugin class: the SEND_SMS permission declared in SetupPlugin.java.
+  checkPermissions(): Promise<{ sms?: string }>
+  requestPermissions(): Promise<{ sms?: string }>
 }
 
 // Backed by android/app/src/main/java/com/teamd/secondsight/SetupPlugin.java. No-ops in the browser.
@@ -27,20 +30,44 @@ export async function openVoiceInstall(): Promise<boolean> {
   }
 }
 
+// The same text to every number, all handed to the phone together. One answer per number: true only when the network
+// has taken that message, so "sent" is never said of a message still sitting in the phone (flight mode, no signal).
 // A browser cannot send an SMS. window.__ssSms is a stand-in for demonstrations and automated checks.
-export async function sendSms(to: string, text: string): Promise<boolean> {
-  if (window.__ssSms) return window.__ssSms(to, text)
-  if (!isNative) return false
+export async function sendSmsToAll(numbers: string[], text: string): Promise<boolean[]> {
+  const standIn = window.__ssSms
+  if (standIn) return Promise.all(numbers.map(to => standIn(to, text)))
+  const none = numbers.map(() => false)
+  if (!isNative) return none
   try {
-    await Setup.sendSms({ to, text })
-    return true
+    // Asked once, here: three messages asking at the same moment would put up three prompts.
+    let sms = (await Setup.checkPermissions()).sms
+    if (sms !== 'granted') sms = (await Setup.requestPermissions()).sms
+    if (sms !== 'granted') return none
   } catch {
-    return false
+    return none
+  }
+  return Promise.all(
+    numbers.map(to =>
+      Setup.sendSms({ to, text }).then(
+        () => true,
+        () => false
+      )
+    )
+  )
+}
+
+// The alarm sound uses the media volume, which may have been left low: full while it sounds, then as it was.
+export async function setAlarmVolume(on: boolean): Promise<void> {
+  if (!isNative) return
+  try {
+    await Setup.alarmVolume({ on })
+  } catch {
+    /* Do Not Disturb can refuse: the alarm sounds at the volume it finds */
   }
 }
 
 // Asks for SMS and location while someone can answer the prompts, not after a fall. A refusal is not final:
-// sendSms and the location lookup ask again when they are needed. The calls ask for theirs in calls.ts.
+// the message and the location lookup ask again when they are needed. The calls ask for theirs in calls.ts.
 export async function requestSosPermissions(): Promise<void> {
   if (!isNative) return
   try {

@@ -1,7 +1,8 @@
 // Safety simulation: battery alerts, camera view alerts (blocked lens, dark scene, washed-out view), the crowd alert,
-// and asking for help (message, then calls in turn).
+// asking for help (message, then calls in turn), a traffic light changing colour, the torch on a night walk, and the
+// alarm when nobody answers.
 // Runs the real app (vite preview on :4173) headless and records every sentence with what the harness did at the time.
-// Usage: node tests/safety-sim.cjs [battery|camera|crowd|sos|all]  → prints JSON { scene: { actions, spoken } }; sos adds texts and calls
+// Usage: node tests/safety-sim.cjs [battery|camera|crowd|sos|light|torch|alarm|all]  → prints JSON { scene: { actions, spoken } }; sos adds texts and calls
 const { chromium } = require(
   process.env.PLAYWRIGHT_PATH ||
     '/Users/dinathnarla/apty/projects/apty-dap-clone-1/node_modules/.pnpm/playwright@1.59.1/node_modules/playwright'
@@ -294,6 +295,208 @@ const scenes = {
     await p.waitForTimeout(6000)
     actions.push({ t: null, action: 'screen after stopping', screen: await screen() })
     const out = { actions, spoken: await spoken(), texts: await texts(), calls: await calls() }
+    await b.close()
+    return out
+  },
+
+  // A traffic light across the road (picture painted, detector scripted): unlit 3 s, then red, and 1.2 s later, while
+  // "traffic light, red" is being said, a person steps out two steps ahead; amber 3 s, green 6 s, then "what is
+  // around me", then amber and back to red.
+  async light() {
+    const { b, p, act, spoken, actions } = await open()
+    await p.getByTestId('start-stop').click()
+    await p.waitForFunction(() => document.querySelector('video')?.readyState >= 2)
+    await p.evaluate(() => {
+      const v = document.querySelector('video')
+      const c = document.createElement('canvas')
+      c.width = 640
+      c.height = 480
+      const g = c.getContext('2d')
+      window.__lamp = 'unlit'
+      window.__person = false
+      const LAMP = { red: [110, 'rgb(235,40,30)'], amber: [155, 'rgb(250,180,30)'], green: [200, 'rgb(40,230,170)'] }
+      const draw = () => {
+        for (let y = 0; y < 480; y += 40)
+          for (let x = 0; x < 640; x += 40) {
+            const s = 60 + ((x * 7 + y * 13) % 150)
+            g.fillStyle = `rgb(${s},${s},${s})`
+            g.fillRect(x, y, 40, 40)
+          }
+        g.fillStyle = '#1c1c1e'
+        g.fillRect(290, 80, 60, 150)
+        const lit = LAMP[window.__lamp]
+        if (lit) {
+          g.fillStyle = lit[1]
+          g.beginPath()
+          g.arc(320, lit[0], 22, 0, 7)
+          g.fill()
+        }
+        requestAnimationFrame(draw)
+      }
+      draw()
+      v.srcObject = c.captureStream(15)
+      v.play()
+      const light = {
+        categories: [{ categoryName: 'traffic light', score: 0.8 }],
+        boundingBox: { originX: 290, originY: 80, width: 60, height: 150 },
+      }
+      // A person 2.5 m away, straight ahead, below the light in the picture.
+      const person = {
+        categories: [{ categoryName: 'person', score: 0.8 }],
+        boundingBox: { originX: 283, originY: 235, width: 73, height: 245 },
+      }
+      window.__ss.detector.detectForVideo = () => ({ detections: window.__person ? [light, person] : [light] })
+    })
+    const lamp = colour => () => p.evaluate(colour => void (window.__lamp = colour), colour)
+    await act('a traffic light comes into view, not lit')
+    await p.waitForTimeout(3000)
+    await act('its lamp turns red')
+    await lamp('red')()
+    await p.waitForTimeout(1200)
+    await act('a person steps out two steps ahead', () => void (window.__person = true))
+    await p.waitForTimeout(4000)
+    await act('the person has gone', () => void (window.__person = false))
+    await p.waitForTimeout(3000)
+    await act('the lamp turns amber')
+    await lamp('amber')()
+    await p.waitForTimeout(3000)
+    await act('the lamp turns green')
+    await lamp('green')()
+    await p.waitForTimeout(6000)
+    await act('Scan once (what is around me)', () => document.querySelector('[data-testid="scan"]').click())
+    await p.waitForTimeout(6000)
+    await act('the lamp turns amber')
+    await lamp('amber')()
+    await p.waitForTimeout(3000)
+    await act('the lamp turns red again')
+    await lamp('red')()
+    await p.waitForTimeout(5000)
+    const out = { actions, spoken: await spoken() }
+    await b.close()
+    return out
+  },
+
+  // A night walk with a torch on the phone (a stand-in, which records when it is switched): a dark street 12 s, with
+  // a person walking up from 6 m to 2 m just as the torch is due; a hand over the lens 10 s; the dark street again
+  // 12 s; then a lit shop front 8 s.
+  async torch() {
+    const { b, p, act, spoken, actions } = await open()
+    const t0 = await p.evaluate(() => {
+      window.__torchLog = []
+      window.__ssTorch = on => (window.__torchLog.push({ at: performance.now(), on }), true)
+      return performance.now()
+    })
+    await p.getByTestId('start-stop').click()
+    await p.waitForFunction(() => document.querySelector('video')?.readyState >= 2)
+    await p.evaluate(() => {
+      const v = document.querySelector('video')
+      const c = document.createElement('canvas')
+      c.width = 320
+      c.height = 240
+      const g = c.getContext('2d')
+      window.__mode = 'lit'
+      const blocks = (from, span) => {
+        for (let y = 0; y < 240; y += 20)
+          for (let x = 0; x < 320; x += 20) {
+            const s = from + ((x * 7 + y * 13) % span)
+            g.fillStyle = `rgb(${s},${s},${s})`
+            g.fillRect(x, y, 20, 20)
+          }
+      }
+      const draw = () => {
+        if (window.__mode === 'hand') {
+          g.fillStyle = '#000'
+          g.fillRect(0, 0, 320, 240)
+        } else if (window.__mode === 'dark') blocks(4, 37)
+        else blocks(60, 150)
+        requestAnimationFrame(draw)
+      }
+      draw()
+      v.srcObject = c.captureStream(15)
+      v.play()
+    })
+    const mode = m => () => p.evaluate(m => void (window.__mode = m), m)
+    await p.evaluate(() => {
+      // A person walking towards the user, 6 m to 2 m over 4 s, from the moment __walkAt is set (frame 320 x 240).
+      window.__walkAt = null
+      window.__ss.detector.detectForVideo = () => {
+        const t = window.__walkAt === null ? -1 : (performance.now() - window.__walkAt) / 1000
+        if (t < 0 || t > 6) return { detections: [] }
+        const h = ((1.7 * 0.75) / Math.max(2, 6 - t)) * 240
+        return {
+          detections: [
+            {
+              categories: [{ categoryName: 'person', score: 0.8 }],
+              boundingBox: { originX: 160 - 0.15 * h, originY: 240 - h, width: 0.3 * h, height: h },
+            },
+          ],
+        }
+      }
+    })
+    await p.waitForTimeout(5000)
+    await act('walks into a dark street')
+    await mode('dark')()
+    await p.waitForTimeout(1500)
+    await act('a person walks up from 6 m to 2 m ahead, over 4 s', () => void (window.__walkAt = performance.now()))
+    await p.waitForTimeout(10500)
+    await act('a hand covers the lens')
+    await mode('hand')()
+    await p.waitForTimeout(10000)
+    await act('the hand is taken away: the dark street again')
+    await mode('dark')()
+    await p.waitForTimeout(12000)
+    await act('reaches a lit shop front')
+    await mode('lit')()
+    await p.waitForTimeout(8000)
+    const torch = await p.evaluate(
+      t0 => window.__torchLog.map(e => ({ t: +((e.at - t0) / 1000).toFixed(1), torch: e.on ? 'on' : 'off' })),
+      t0
+    )
+    const out = { actions, spoken: await spoken(), torch }
+    await b.close()
+    return out
+  },
+
+  // Help asked for with the camera watching and a person standing 4 m away on the left; nobody picks up (each call
+  // rings 2 s here): the alarm for people nearby, stopped by a tap, after which the warnings come back.
+  async alarm() {
+    const { b, p, act, spoken, calls, actions } = await open()
+    const screen = async () =>
+      p.evaluate(() => ({
+        title: document.querySelector('[data-testid="alert-title"]')?.textContent || null,
+        button: document.querySelector('[data-testid="alert-cancel"]')?.getAttribute('aria-label') || null,
+        alarm: document.querySelector('[data-testid="alert-cancel"]')?.getAttribute('data-alarm') === 'true',
+      }))
+    await p.evaluate(() => {
+      window.__ssCall = number =>
+        new Promise(resolve => {
+          window.__calls.push({ at: performance.now(), number })
+          setTimeout(() => resolve({ started: true, answered: false, seconds: 0 }), 2000)
+        })
+    })
+    await p.getByTestId('start-stop').click()
+    await p.waitForFunction(() => document.querySelector('video')?.readyState >= 2)
+    await p.evaluate(() => {
+      window.__ss.detector.detectForVideo = () => ({
+        detections: [
+          {
+            categories: [{ categoryName: 'person', score: 0.8 }],
+            boundingBox: { originX: 86, originY: 327, width: 46, height: 153 },
+          },
+        ],
+      })
+    })
+    await act('camera watching, a person standing 4 m away on the left')
+    await p.waitForTimeout(4000)
+    await act('volume-down held 2 s', () => window.dispatchEvent(new Event('volumeDownHold')))
+    await p.waitForSelector('[data-testid="alert-cancel"][data-alarm="true"]', { timeout: 120000 })
+    await act('the alarm starts sounding')
+    actions.push({ t: null, action: 'screen while the alarm sounds', screen: await screen() })
+    await p.waitForTimeout(4000)
+    await act('tap anywhere (stop the alarm)', () => document.querySelector('[data-testid="alert-cancel"]').click())
+    await p.waitForTimeout(6000)
+    actions.push({ t: null, action: 'screen after the tap', screen: await screen() })
+    const out = { actions, spoken: await spoken(), calls: await calls() }
     await b.close()
     return out
   },
