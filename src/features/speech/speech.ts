@@ -3,7 +3,7 @@ import { Capacitor } from '@capacitor/core'
 
 import type { TargetClass } from '../vision/detector'
 import type { Side, Target } from '../vision/distance'
-import { vibrate } from '../../native/vibrate'
+import { vibrate } from '../../native/vibrate.ts'
 
 // Languages with a full sentence table. A language appears in the app only when its voice is installed on the phone.
 export const LANGS = ['en', 'te', 'hi', 'ta', 'kn'] as const
