@@ -28,7 +28,7 @@ pnpm apk:release        # shareable APK: no INTERNET permission, signed with the
 pnpm lint && pnpm ts:check
 node --test tests/*.test.ts                 # unit tests (fall rule, sentences, steering, traffic light, potholes)
 node tests/voice-sim.cjs all                # scripted street scenes → what the app would say
-node tests/safety-sim.cjs all               # battery, camera, crowd, SOS, alarm, torch, traffic light
+node tests/safety-sim.cjs all               # battery, camera, crowd, SOS, alarm, traffic light
 node tests/footage-sim.cjs <video.mp4>      # a real walk video through the real models, a frame per sentence
 ```
 
@@ -73,7 +73,7 @@ src/
   App.tsx                          main screen: status, camera view, lane strip, scan / language, Start / Stop
   components/FallAlert.tsx         full-screen alert: countdown, calls, the emergency screen for helpers
   ui/                              bubble controls, icons, page pieces, English and Telugu labels
-  features/camera/                 back camera; torch through the open camera
+  features/camera/                 back camera
   features/vision/detector.ts      MediaPipe setup, CPU/GPU choice
   features/vision/distance.ts      distance, side, "coming", target choice, steering
   features/vision/useDetection.ts  100 ms loop, overlay, describe, calibration
