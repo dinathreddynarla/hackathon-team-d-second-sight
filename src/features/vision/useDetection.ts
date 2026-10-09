@@ -1,7 +1,7 @@
 import type { Detection, ObjectDetector } from '@mediapipe/tasks-vision'
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 
-import { scanSentence, speak, warn, type Lang } from '../speech/speech'
+import { pauseWarnings, scanSentence, speak, warn, type Lang } from '../speech/speech'
 import { createDetector, preferredDelegate } from './detector'
 import { analyse, analyseAll, calibrateK, loadK, saveK, type Target } from './distance'
 
@@ -58,6 +58,13 @@ export function useDetection(
       if (window.__ss)
         window.__ss.last = { n: detections.length, labels: detections.map(d => d.categories[0]?.categoryName ?? '?') }
       const target = analyse(detections, video.videoWidth, video.videoHeight, kRef.current, now)
+      if (window.__ss)
+        window.__ss.chosen = target && {
+          label: target.label,
+          side: target.side,
+          distance: +target.distance.toFixed(1),
+          approaching: target.approaching,
+        }
       lastRatioRef.current = target?.label === 'person' ? target.box.h / video.videoHeight : 0
       draw(canvas, video, target)
       if (target) {
@@ -92,7 +99,8 @@ export function useDetection(
     if (!running || model !== 'ready' || !video || video.videoWidth === 0) return ''
     const targets = analyseAll(lastDetectionsRef.current, video.videoWidth, video.videoHeight, kRef.current)
     const text = scanSentence(targets, langRef.current)
-    void speak(text, langRef.current)
+    pauseWarnings(true)
+    void speak(text, langRef.current).finally(() => pauseWarnings(false))
     setLastSaid(text)
     return text
   }, [videoRef, running, model])

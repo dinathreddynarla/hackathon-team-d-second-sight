@@ -46,7 +46,7 @@ This is how the GPU-returns-nothing bug was found in under 5 minutes.
 7. Outdoor, daylight: calibrate at 5 m, fill the accuracy table (Phase 4 in the build guide).
 8. Setup with an emergency number: the SMS and location prompts appear when Done is tapped, not at the first fall. Repeat with the APK installed from a downloaded file, where Android 15 and newer may restrict the SMS prompt.
 9. Telugu without its voice installed: the app switches to English and says the voice is not installed. After installing the voice, Telugu works again.
-10. Speech: a scan sentence is heard to the end unless something very close or approaching appears.
+10. Speech: a scan sentence is heard to the end, and the fall alert question is heard without warnings over it.
 11. Camera permission refused: the app says the camera did not start.
 12. TalkBack on: check warnings are not read twice (the caption is an `aria-live` region).
 13. Release APK in airplane mode: check the Network chip says "Network off" (the manifest has no `ACCESS_NETWORK_STATE`).
