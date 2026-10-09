@@ -190,8 +190,13 @@ export function phrase(key: Phrase, lang: Lang): string {
 
 // One mouth: a sentence always finishes. While it plays, only the newest request is kept and spoken next.
 let busy = false
-let pending: { text: string; lang: Lang; at: number } | null = null
+let pending: { text: string; lang: Lang; at: number; key?: string } | null = null
 const PENDING_TTL_MS = 1500 // a sentence that waited longer describes a street that no longer exists
+let currentKey: string | null = null
+// The detection loop reports what is in front of the lens right now; a queued warning about something else is dropped.
+export function setCurrentTarget(key: string | null) {
+  currentKey = key
+}
 
 async function stopSpeaking(): Promise<void> {
   if (Capacitor.isNativePlatform()) await TextToSpeech.stop().catch(() => undefined)
@@ -219,9 +224,9 @@ async function speakRaw(text: string, lang: Lang): Promise<void> {
 
 // Routine sentences wait their turn. An urgent one (something moving, or within two steps) cuts in at once.
 let generation = 0
-export async function speak(text: string, lang: Lang, urgent = false): Promise<void> {
+export async function speak(text: string, lang: Lang, urgent = false, key?: string): Promise<void> {
   if (busy && !urgent) {
-    pending = { text, lang, at: performance.now() }
+    pending = { text, lang, at: performance.now(), key }
     return
   }
   if (busy) {
@@ -238,7 +243,8 @@ export async function speak(text: string, lang: Lang, urgent = false): Promise<v
       busy = false
       const next = pending
       pending = null
-      if (next && performance.now() - next.at < PENDING_TTL_MS) void speak(next.text, next.lang)
+      const fresh = next && performance.now() - next.at < PENDING_TTL_MS && (!next.key || next.key === currentKey)
+      if (next && fresh) void speak(next.text, next.lang)
     }
   }
 }
@@ -247,7 +253,7 @@ export function isSpeaking(): boolean {
 }
 
 // What was last announced per object kind, so a static thing is not repeated every few seconds.
-const announced = new Map<string, { side: string; bucket: number; tier: number; t: number }>()
+const announced = new Map<string, { side: string; bucket: number; tier: number; t: number; distance: number }>()
 let paused = false
 let lastSpokenAt = -1e9
 export function pauseWarnings(on: boolean) {
@@ -269,6 +275,8 @@ export function warn(t: Target, lang: Lang, now: number): string | null {
   const tier = tierOf(t)
   const prev = announced.get(t.label)
   const escalated = prev ? tier > prev.tier : tier >= 2
+  // The same object re-spoken within a second needs a real change: a different side or at least 1 m nearer.
+  if (prev && escalated && now - prev.t < 1000 && prev.side === t.side && prev.distance - t.distance < 1) return null
   const urgent = escalated && (tier >= 3 || (tier === 2 && t.approaching && (!prev || prev.tier === 0)))
   const due =
     !prev ||
@@ -280,9 +288,9 @@ export function warn(t: Target, lang: Lang, now: number): string | null {
   // Never two sentences within a second unless something is at one step; that is what "right… left" flapping sounds like.
   if (now - lastSpokenAt < 1000 && tier < 4) return null
   lastSpokenAt = now
-  announced.set(t.label, { side: t.side, bucket, tier, t: now })
+  announced.set(t.label, { side: t.side, bucket, tier, t: now, distance: t.distance })
   const text = sentence(t, lang)
-  void speak(text, lang, urgent)
+  void speak(text, lang, urgent, `${t.label}:${t.side}`)
   if (t.distance < 3) navigator.vibrate?.(200)
   return text
 }

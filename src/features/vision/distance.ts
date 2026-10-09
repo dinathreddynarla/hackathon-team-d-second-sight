@@ -63,15 +63,17 @@ export function calibrateK(personBoxRatio: number, trueDistance = 5): number {
   return (trueDistance * personBoxRatio) / REAL_HEIGHT.person
 }
 
-const history: Record<string, { t: number; ratio: number }[]> = {}
+const history: Record<string, { t: number; d: number }[]> = {}
+const CLOSING_SPEED = 1.5 // m/s: faster than the user's own walk, so a seated person never "comes"
 
-// Box grew more than 20% versus ~0.7 s ago means the object is coming closer.
-function isApproaching(key: string, ratio: number, now: number): boolean {
+// Closing speed over the last ~0.7 s. Keyed by object and side.
+function isApproaching(key: string, distance: number, now: number): boolean {
   const h = (history[key] ?? []).filter(e => now - e.t < 1500)
-  h.push({ t: now, ratio })
+  h.push({ t: now, d: distance })
   history[key] = h
   const old = h.find(e => now - e.t >= 700)
-  return old !== undefined && ratio / old.ratio > 1.2
+  if (!old) return false
+  return (old.d - distance) / ((now - old.t) / 1000) > CLOSING_SPEED
 }
 
 // A box must be seen in 3 consecutive frames before it can be spoken; reflections and decals rarely survive that.
@@ -94,9 +96,9 @@ export function analyseAll(detections: Detection[], frameW: number, frameH: numb
     const ratio = bb.height / frameH
     const wRatio = bb.width / frameW
     if (ratio < 0.04) continue
-    // Slivers touching a frame edge are half-seen things or reflections; a real passer-by is wider than that.
+    // Short slivers touching a frame edge are half-seen things or reflections; a tall one is someone brushing past.
     const touchesEdge = bb.originX <= 1 || bb.originX + bb.width >= frameW - 1
-    if (touchesEdge && wRatio < 0.08) continue
+    if (touchesEdge && wRatio < 0.08 && ratio < 0.4) continue
     // Two estimates, keep the NEARER: height (standing, full body) and width (seated, legs cut off). Errors go the safe way.
     const byHeight = (REAL_HEIGHT[label] * k) / ratio
     const byWidth = (REAL_WIDTH[label] * k * (frameH / frameW)) / wRatio
@@ -129,11 +131,14 @@ export function analyse(
   now: number
 ): Target | null {
   const all = analyseAll(detections, frameW, frameH, k).filter(t => persisted(`${t.label}:${t.side}`, now))
-  for (const t of all) t.approaching = isApproaching(`${t.label}:${t.side}`, t.box.h / frameH, now)
+  for (const t of all) t.approaching = isApproaching(`${t.label}:${t.side}`, t.distance, now)
+  // Nearest wins; a moving object overrides only while it is within 10 m.
   let best: Target | null = null
   for (const t of all) {
     if (!best) best = t
-    else if (t.approaching !== best.approaching) best = t.approaching ? t : best
+    else if (t.approaching !== best.approaching)
+      best =
+        (t.approaching ? t : best).distance < 10 ? (t.approaching ? t : best) : t.distance < best.distance ? t : best
     else if (t.distance < best.distance) best = t
   }
   if (best) {
