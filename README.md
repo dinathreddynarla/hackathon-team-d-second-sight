@@ -61,12 +61,13 @@ makes single numbers dishonest.
 
 - Detects people, cars, motorcycles, bicycles, buses, trucks, dogs and cows on the phone, no internet
 - Speaks distance and direction, warns when something approaches, vibrates under 3 m
-- Scan once: double-tap the view or press volume-up twice to hear everything in front of you
-- English (India) and Telugu voices
+- Describe what is around: double-tap the view, press volume-up twice, or use the volume-key shortcut while watching. Speaks the warning objects with where and how far, other recognisable things by name (chair, bench, traffic light, stop sign, …), and any printed English text in view (read on the phone, offline)
+- Speaks English, Telugu, Hindi, Tamil and Kannada; the app offers only the languages whose voice is installed on the phone
 - Fall detection, two rules: an impact then stillness (15 s to cancel), or a collapse then 30 s lying still (30 s to cancel); then an SOS SMS with a maps link, then "tap anywhere to call your contact"
 - **Open and start without finding anything:** assign Second Sight to Android's accessibility shortcut, then hold both volume keys for 3 s, even from the lock screen. The camera starts by itself
 - Ask for help on purpose: hold volume-down for 2 s (10 s to cancel)
 - Spoken status: battery at 20% and 10% with the real level, "Camera blocked. Clear the lens.", "Camera can't see. Warnings may be missed."
+- Screen stays on and dims to 5% while watching (saves battery); a quiet street drops detection from 10 to about 3 checks a second
 - Works in flight mode after a one-time setup (voices are downloaded by Android's own text-to-speech settings).
   The fall SOS is the exception: an SMS needs mobile signal, so it cannot send in flight mode
 - One large Start / Stop button fills the bottom of the screen and confirms by voice, so it is found by touch alone

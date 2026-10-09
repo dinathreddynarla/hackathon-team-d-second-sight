@@ -1,13 +1,13 @@
 import { Box, Dialog, Stack, TextField, Typography } from '@mui/material'
 import { useEffect, useId, useState } from 'react'
 
-import { isNative, openVoiceInstall, requestSosPermissions } from '../../native/setup'
+import { isNative, openAccessibilitySettings, openVoiceInstall, requestSosPermissions } from '../../native/setup'
 import { color } from '../../theme'
 import { Bubble } from '../../ui/bubbles'
 import { Group, PageHeader, Segmented } from '../../ui/page'
 import { LANGUAGE_NAME, UI } from '../../ui/strings'
 import { useBackToClose } from '../../ui/useBackToClose'
-import { announce, type Lang } from '../speech/speech'
+import { announce, LANGS, type Lang } from '../speech/speech'
 
 type Props = {
   open: boolean
@@ -91,10 +91,8 @@ export function SetupDialog({ open, lang, sosNumber, onLang, onClose, onDone }: 
               label={s.languageStep}
               value={lang}
               onChange={onLang}
-              options={[
-                { value: 'en', label: LANGUAGE_NAME.en, testId: 'setup-lang-en' },
-                { value: 'te', label: LANGUAGE_NAME.te, testId: 'setup-lang-te' },
-              ]}
+              // Every translated language: its voice is installed in the next step.
+              options={LANGS.map(l => ({ value: l, label: LANGUAGE_NAME[l], testId: `setup-lang-${l}` }))}
             />
           </Box>
         </Group>
@@ -111,7 +109,23 @@ export function SetupDialog({ open, lang, sosNumber, onLang, onClose, onDone }: 
           </Stack>
         </Group>
 
-        <Group title={s.numberStep} badge={<StepBadge n={3} label={s.step(3)} />}>
+        <Group title={s.shortcutStep} badge={<StepBadge n={3} label={s.step(3)} />}>
+          <Stack sx={{ p: 2, gap: 1.5 }}>
+            <Typography sx={{ color: color.chalk }}>{s.shortcutBody}</Typography>
+            <Bubble
+              data-testid="setup-shortcut"
+              disabled={!isNative}
+              onClick={() => {
+                announce('shortcutHelp', lang)
+                void openAccessibilitySettings()
+              }}
+            >
+              {s.openShortcut}
+            </Bubble>
+          </Stack>
+        </Group>
+
+        <Group title={s.numberStep} badge={<StepBadge n={4} label={s.step(4)} />}>
           <Stack sx={{ p: 2, gap: 1.5 }}>
             <Typography sx={{ color: color.chalk }}>{s.numberBody}</Typography>
             <TextField

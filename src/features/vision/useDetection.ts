@@ -1,13 +1,28 @@
 import type { Detection, ObjectDetector } from '@mediapipe/tasks-vision'
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 
-import { pauseWarnings, scanSentence, setCurrentTarget, speak, warn, type Lang } from '../speech/speech'
+import { readText } from '../../native/setup'
+import {
+  describeSentence,
+  EXTRA_CLASSES,
+  pauseWarnings,
+  setCurrentTarget,
+  speak,
+  warn,
+  type ExtraClass,
+  type Lang,
+} from '../speech/speech'
 import { createDetector, preferredDelegate } from './detector'
 import { analyse, analyseAll, calibrateK, loadK, saveK, type Side, type Target } from './distance'
 
 export type ModelState = 'loading' | 'ready' | 'missing'
 
-// Runs the detector every 100 ms while the camera is live, draws boxes, speaks the nearest target.
+// Runs the detector while the camera is live, draws boxes, speaks the nearest target. Every 100 ms while anything is
+// in view; after 10 s of an empty view every 300 ms, which roughly halves the CPU (and battery) on a quiet street.
+// The first detection brings the fast rate back, so the extra delay is at most 0.2 s for something new.
+const FAST_MS = 100
+const IDLE_MS = 300
+const IDLE_AFTER_MS = 10000
 export function useDetection(
   videoRef: RefObject<HTMLVideoElement | null>,
   canvasRef: RefObject<HTMLCanvasElement | null>,
@@ -52,12 +67,19 @@ export function useDetection(
     let frames = 0
     let fpsAt = performance.now()
     let lastTs = 0
+    let lastSeenAt = performance.now()
+    let timer = 0
+    const loop = () => {
+      tick()
+      timer = window.setTimeout(loop, performance.now() - lastSeenAt > IDLE_AFTER_MS ? IDLE_MS : FAST_MS)
+    }
     const tick = () => {
       if (video.readyState < 2 || video.videoWidth === 0) return
       const now = performance.now()
       if (now <= lastTs) return // MediaPipe needs strictly increasing timestamps
       lastTs = now
       const { detections } = detector.detectForVideo(video, now)
+      if (detections.length) lastSeenAt = now
       lastDetectionsRef.current = detections
       if (window.__ss)
         window.__ss.last = { n: detections.length, labels: detections.map(d => d.categories[0]?.categoryName ?? '?') }
@@ -92,9 +114,9 @@ export function useDetection(
         fpsAt = now
       }
     }
-    const id = setInterval(tick, 100)
+    loop()
     return () => {
-      clearInterval(id)
+      clearTimeout(timer)
       lastDetectionsRef.current = []
       shownRef.current = false
       setLastSaid('')
@@ -110,23 +132,43 @@ export function useDetection(
     return true
   }
 
-  // "Scan once": one sentence for everything in the current frame, on demand.
-  const scan = useCallback(() => {
+  // "What is around me" (Scan button, volume-up twice, or the accessibility shortcut while watching): the warning
+  // objects with where and how far, other recognisable things by name, then any printed text in view.
+  const scan = useCallback(async () => {
     const video = videoRef.current
     // No loop means no detections to report: stay quiet rather than claim there is nothing around.
     if (!running || model !== 'ready' || !video || video.videoWidth === 0) return ''
-    const targets = analyseAll(lastDetectionsRef.current, video.videoWidth, video.videoHeight, kRef.current)
-    const text = scanSentence(targets, langRef.current)
+    const detections = lastDetectionsRef.current
+    const targets = analyseAll(detections, video.videoWidth, video.videoHeight, kRef.current)
+    const extras = [
+      ...new Set(
+        detections
+          .filter(d => (d.categories[0]?.score ?? 0) >= 0.5)
+          .map(d => d.categories[0]?.categoryName as ExtraClass)
+          .filter(name => (EXTRA_CLASSES as readonly string[]).includes(name))
+      ),
+    ]
     pauseWarnings(true)
-    void speak(text, langRef.current).finally(() => pauseWarnings(false))
-    setLastSaid(text)
+    const text = await readText(frameJpeg(video))
+    const sentence = describeSentence(targets, extras, text, langRef.current)
+    void speak(sentence, langRef.current, true).finally(() => pauseWarnings(false))
+    setLastSaid(sentence)
     setLane(null)
     shownRef.current = true
-    showUntilRef.current = performance.now() + 6000
-    return text
+    showUntilRef.current = performance.now() + 8000
+    return sentence
   }, [videoRef, running, model])
 
   return { model, lastSaid, lane, fps, calibrate, scan, k: kRef.current }
+}
+
+// The current camera frame as base64 JPEG (no data: prefix), for text reading.
+function frameJpeg(video: HTMLVideoElement): string {
+  const c = document.createElement('canvas')
+  c.width = video.videoWidth
+  c.height = video.videoHeight
+  c.getContext('2d')?.drawImage(video, 0, 0)
+  return c.toDataURL('image/jpeg', 0.9).split(',')[1] ?? ''
 }
 
 function draw(canvas: HTMLCanvasElement, video: HTMLVideoElement, target: Target | null) {

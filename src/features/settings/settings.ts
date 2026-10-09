@@ -2,9 +2,10 @@ import { useCallback, useState } from 'react'
 
 import type { Lang } from '../speech/speech'
 
-export type Settings = { lang: Lang; sosNumber: string; setupDone: boolean }
+// dim: screen at 5% brightness while watching. The user cannot see it; it is the biggest battery saving there is.
+export type Settings = { lang: Lang; sosNumber: string; setupDone: boolean; dim: boolean }
 const KEY = 'secondsight.settings'
-const DEFAULTS: Settings = { lang: 'en', sosNumber: '', setupDone: false }
+const DEFAULTS: Settings = { lang: 'en', sosNumber: '', setupDone: false, dim: true }
 
 function load(): Settings {
   try {
