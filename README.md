@@ -60,6 +60,7 @@ makes single numbers dishonest.
 ## Key features
 
 - Detects people, cars, motorcycles, bicycles, buses, trucks, dogs and cows on the phone, no internet
+- Reads Indian road signs while walking (37 types: stop, no entry, speed limits 20 to 80, school ahead, pedestrian crossing, speed breaker, give way, …): "Sign: stop", once per sign, never over a warning. Left/right sign pairs are spoken without the side because the model cannot tell them apart
 - Speaks distance and direction, warns when something approaches, vibrates under 3 m
 - Describe what is around: double-tap the view, press volume-up twice, or use the volume-key shortcut while watching. Speaks the warning objects with where and how far, other recognisable things by name (chair, bench, traffic light, stop sign, …), and any printed English text in view (read on the phone, offline)
 - Speaks English, Telugu, Hindi, Tamil and Kannada; the app offers only the languages whose voice is installed on the phone

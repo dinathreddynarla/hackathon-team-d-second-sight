@@ -13,6 +13,7 @@ import { SettingsDialog } from './features/settings/SettingsDialog'
 import { SetupDialog } from './features/settings/SetupDialog'
 import { useSettings } from './features/settings/settings'
 import { announce, installedLangs, phrase, setVoiceFailureHandler, speak, type Lang } from './features/speech/speech'
+import { useSigns } from './features/signs/useSigns'
 import { useDetection } from './features/vision/useDetection'
 import {
   isNative,
@@ -50,6 +51,7 @@ export function App() {
   const alertBusy = sos.state === 'countdown' || sos.state === 'sending'
   const detection = useDetection(camera.videoRef, canvasRef, running && !alertBusy, lang)
   const { model } = detection
+  useSigns(camera.videoRef, running && !alertBusy, lang)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [setupOpen, setSetupOpen] = useState(!settings.setupDone)
   const lastTapRef = useRef(0)
