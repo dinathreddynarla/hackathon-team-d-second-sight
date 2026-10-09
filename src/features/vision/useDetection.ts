@@ -2,7 +2,7 @@ import type { ObjectDetector } from '@mediapipe/tasks-vision'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 
 import { warn, type Lang } from '../speech/speech'
-import { createDetector } from './detector'
+import { createDetector, preferredDelegate } from './detector'
 import { analyse, calibrateK, loadK, saveK, type Target } from './distance'
 
 export type ModelState = 'loading' | 'ready' | 'missing'
@@ -29,6 +29,8 @@ export function useDetection(
       .then(d => {
         if (cancelled) return
         detectorRef.current = d
+        // ponytail: debug handle for chrome://inspect and the USB live-debug bridge
+        window.__ss = { detector: d, delegate: preferredDelegate(), last: null }
         setModel('ready')
       })
       .catch(() => setModel('missing'))
@@ -51,6 +53,8 @@ export function useDetection(
       if (now <= lastTs) return // MediaPipe needs strictly increasing timestamps
       lastTs = now
       const { detections } = detector.detectForVideo(video, now)
+      if (window.__ss)
+        window.__ss.last = { n: detections.length, labels: detections.map(d => d.categories[0]?.categoryName ?? '?') }
       const target = analyse(detections, video.videoWidth, video.videoHeight, kRef.current, now)
       lastRatioRef.current = target?.label === 'person' ? target.box.h / video.videoHeight : 0
       draw(canvas, video, target)

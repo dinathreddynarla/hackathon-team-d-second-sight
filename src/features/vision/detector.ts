@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core'
 import { FilesetResolver, ObjectDetector } from '@mediapipe/tasks-vision'
 
 export const TARGET_CLASSES = ['person', 'car', 'motorcycle', 'bicycle', 'bus', 'truck'] as const
@@ -7,10 +8,24 @@ export type TargetClass = (typeof TARGET_CLASSES)[number]
 const WASM_PATH = './vendor/wasm'
 const MODEL_PATH = './models/efficientdet_lite0.tflite'
 
-export async function createDetector(): Promise<ObjectDetector> {
+export type Delegate = 'GPU' | 'CPU'
+const DELEGATE_KEY = 'secondsight.delegate'
+// Verified on an iQOO Neo 10 (Android 16 WebView): the GPU delegate runs but returns zero detections,
+// CPU (XNNPACK) detects at ~5 fps. Browsers on the Mac and phone Chrome are fine with GPU.
+export function preferredDelegate(): Delegate {
+  try {
+    const forced = localStorage.getItem(DELEGATE_KEY)
+    if (forced === 'CPU' || forced === 'GPU') return forced
+  } catch {
+    /* storage blocked */
+  }
+  return Capacitor.isNativePlatform() ? 'CPU' : 'GPU'
+}
+
+export async function createDetector(delegate: Delegate = preferredDelegate()): Promise<ObjectDetector> {
   const fileset = await FilesetResolver.forVisionTasks(WASM_PATH)
   const options = {
-    baseOptions: { modelAssetPath: MODEL_PATH, delegate: 'GPU' as const },
+    baseOptions: { modelAssetPath: MODEL_PATH, delegate },
     runningMode: 'VIDEO' as const,
     scoreThreshold: 0.45,
     categoryAllowlist: [...TARGET_CLASSES],
