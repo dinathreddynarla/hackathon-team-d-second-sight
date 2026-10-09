@@ -29,6 +29,7 @@ type Words = {
   side: Record<Side, string>
   range: Record<Range, string>
   metres: (n: number) => string
+  andMore: (n: number) => string
   approaching: string
   phrase: Record<Phrase, string>
 }
@@ -59,6 +60,7 @@ const WORDS: Record<Lang, Words> = {
     side: { left: 'left', ahead: 'ahead', right: 'right' },
     range: { oneStep: 'one step', twoSteps: 'two steps', close: 'close', metres: '', far: 'far' },
     metres: n => `${n} metres`,
+    andMore: n => `and ${n} more`,
     approaching: 'coming',
     phrase: {
       ready: 'Second Sight ready',
@@ -102,6 +104,7 @@ const WORDS: Record<Lang, Words> = {
     side: { left: 'ఎడమవైపు', ahead: 'ముందు', right: 'కుడివైపు' },
     range: { oneStep: 'ఒక అడుగు', twoSteps: 'రెండు అడుగులు', close: 'దగ్గరగా', metres: '', far: 'దూరంగా' },
     metres: n => `${n} మీటర్లు`,
+    andMore: n => `ఇంకా ${n}`,
     approaching: 'వస్తోంది',
     phrase: {
       ready: 'సెకండ్ సైట్ సిద్ధం',
@@ -155,25 +158,27 @@ export function sentence(t: Target, lang: Lang): string {
     : `${w.label[t.label]} ${w.side[t.side]}, ${range}`
 }
 
-// Asked-for summary: at most three groups, nearest first, full stops so the voice pauses between them.
+// Asked-for summary: groups by object and side with the nearest range, at most three groups, "and N more" for the rest.
 export function scanSentence(targets: Target[], lang: Lang): string {
   const w = WORDS[lang]
   if (targets.length === 0) return w.phrase.nothingAround
   const groups = new Map<string, { t: Target; n: number }>()
   for (const t of [...targets].sort((a, b) => a.distance - b.distance)) {
-    const key = `${t.label}:${t.side}:${bucketIndex(t.distance)}` // same grouping as the live warning, so counts agree
+    const key = `${t.label}:${t.side}`
     const g = groups.get(key)
     if (g) g.n++
     else groups.set(key, { t, n: 1 })
   }
-  return [...groups.values()]
-    .slice(0, 3)
-    .map(({ t, n }) => {
-      const noun = n > 1 ? `${n} ${w.plural[t.label]}` : w.label[t.label]
-      const range = rangeWords(t.distance, lang)
-      return lang === 'te' ? `${w.side[t.side]} ${noun}, ${range}` : `${noun} ${w.side[t.side]}, ${range}`
-    })
-    .join('. ')
+  const all = [...groups.values()]
+  const shown = all.slice(0, 3)
+  const rest = all.slice(3).reduce((n, g) => n + g.n, 0)
+  const parts = shown.map(({ t, n }) => {
+    const noun = n > 1 ? `${n} ${w.plural[t.label]}` : w.label[t.label]
+    const range = rangeWords(t.distance, lang)
+    return lang === 'te' ? `${w.side[t.side]} ${noun}, ${range}` : `${noun} ${w.side[t.side]}, ${range}`
+  })
+  if (rest > 0) parts.push(w.andMore(rest))
+  return parts.join('. ')
 }
 
 export function phrase(key: Phrase, lang: Lang): string {
