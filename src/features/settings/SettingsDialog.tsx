@@ -20,7 +20,6 @@ type Props = {
   voiceList: string[]
   voice: string | null
   sosMessages: string[]
-  torch: boolean
   siren: boolean
   sosNumbers: string[]
   k: number
@@ -33,7 +32,6 @@ type Props = {
   onPitch: (pitch: SpeechPitch) => void
   onVoice: (voice: string | null) => void
   onSosMessage: (slot: number, message: string) => void
-  onTorch: (torch: boolean) => void
   onSiren: (siren: boolean) => void
   walls: boolean
   onWalls: (walls: boolean) => void
@@ -57,7 +55,6 @@ export function SettingsDialog({
   voiceList,
   voice,
   sosMessages,
-  torch,
   siren,
   sosNumbers,
   k,
@@ -70,7 +67,6 @@ export function SettingsDialog({
   onPitch,
   onVoice,
   onSosMessage,
-  onTorch,
   onSiren,
   walls,
   onWalls,
@@ -255,13 +251,6 @@ export function SettingsDialog({
             onClick={() => onWalls(!walls)}
           />
           <Row label={s.dim} hint={dim ? s.dimOn : s.dimOff} checked={dim} testId="dim" onClick={() => onDim(!dim)} />
-          <Row
-            label={s.torch}
-            hint={torch ? s.torchOn : s.torchOff}
-            checked={torch}
-            testId="torch"
-            onClick={() => onTorch(!torch)}
-          />
         </Group>
 
         <Group title={s.setupGroup}>

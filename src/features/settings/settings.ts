@@ -8,7 +8,7 @@ export const DEFAULT_SOS_MESSAGE = 'I may need help. Please call me.'
 // sosNumbers is one slot per contact, in calling order; an empty slot is an empty string.
 // dim: screen at 5% brightness while watching. The user cannot see it; it is the biggest battery saving there is.
 // walls: the depth model for obstacles. Off by default: it is the heaviest part (about 1.5 s per check on an iQOO Neo 10).
-// rate: how fast the voice talks. torch: light the flashlight when the camera finds it dark. siren: sound an alarm
+// rate: how fast the voice talks. siren: sound an alarm
 // for the people nearby when no emergency contact could be reached.
 export type Settings = {
   lang: Lang
@@ -21,7 +21,6 @@ export type Settings = {
   voices: Partial<Record<Lang, string>>
   // One per contact slot, beside sosNumbers. Empty means DEFAULT_SOS_MESSAGE.
   sosMessages: string[]
-  torch: boolean
   siren: boolean
   walls: boolean
 }
@@ -35,7 +34,6 @@ const DEFAULTS: Settings = {
   pitch: 'normal',
   voices: {},
   sosMessages: [],
-  torch: true,
   siren: true,
   walls: false,
 }

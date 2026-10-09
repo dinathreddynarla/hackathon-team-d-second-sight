@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react'
 import { FallAlert } from './components/FallAlert'
 import { LaneStrip } from './components/LaneStrip'
 import { StatusBar } from './components/StatusBar'
-import { setTorch } from './features/camera/torch'
 import { useCamera } from './features/camera/useCamera'
 import { watchFalls } from './features/safety/fall'
 import { useBatteryAlerts, useCameraViewAlerts } from './features/safety/useDeviceAlerts'
@@ -57,9 +56,7 @@ export function App() {
   const camera = useCamera()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const running = camera.state === 'running'
-  const sos = useSos(lang, settings.sosNumbers, settings.sosMessages, settings.siren, on => {
-    void setTorch(camera.videoRef.current, on)
-  })
+  const sos = useSos(lang, settings.sosNumbers, settings.sosMessages, settings.siren)
   // Detection keeps quiet while the alert is asking, sending or calling, and resumes once the result is showing.
   // Unless the alarm for people nearby is about to sound or sounding: nothing would be heard under it, and a warning
   // must not cut off the sentence that says how to stop it.
@@ -200,7 +197,7 @@ export function App() {
   // What the user cannot see: a low battery, a covered lens, a scene too dark or too washed out to read. The battery
   // waits while the alert is up, so it cannot talk over "Are you okay?" or the calls.
   useBatteryAlerts(langRef, sos.state !== 'idle')
-  useCameraViewAlerts(camera.videoRef, running && !alertBusy, langRef, settings.torch)
+  useCameraViewAlerts(camera.videoRef, running && !alertBusy, langRef)
   // And what the app can tell about its own work: a crowd in view, and detection that has fallen behind.
   const watching = running && !alertBusy && model === 'ready'
   useCrowdAlerts(detection.people, detection.scannedAt, watching, langRef)
@@ -442,8 +439,6 @@ export function App() {
             ),
           })
         }
-        torch={settings.torch}
-        onTorch={torch => update({ torch })}
         siren={settings.siren}
         onSiren={siren => update({ siren })}
         walls={settings.walls}

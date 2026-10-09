@@ -37,14 +37,8 @@ const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 // Speak, count down with vibration pulses, then SMS every saved contact (their own message, what happened, a maps
 // link), then phone them in order until one answers. If nobody could be reached, sound an alarm for the people nearby
-// (`siren`: the setting), with `flash` (the torch) blinking along.
-export function useSos(
-  lang: Lang,
-  sosNumbers: string[],
-  sosMessages: string[],
-  siren: boolean,
-  flash?: (on: boolean) => void
-) {
+// (`siren`: the setting).
+export function useSos(lang: Lang, sosNumbers: string[], sosMessages: string[], siren: boolean) {
   const [state, setState] = useState<SosState>('idle')
   const [reason, setReason] = useState<SosReason>('fall')
   const [secondsLeft, setSecondsLeft] = useState(COUNTDOWN_S.fall)
@@ -62,8 +56,6 @@ export function useSos(
   langRef.current = lang
   const contacts = contactsWithMessages(sosNumbers, sosMessages)
   const contactsRef = useRef(contacts)
-  const flashRef = useRef(flash)
-  flashRef.current = flash
   contactsRef.current = contacts
 
   const clear = () => {
@@ -234,7 +226,7 @@ export function useSos(
       setAlarm(true)
       while (on) {
         // One S O S, then the words: someone walking past hears them within about ten seconds.
-        beepSos(flashRef.current)
+        beepSos()
         await pause(SOS_MS)
         // A beep brings people; words tell them what to do. English, then the user's own language for anyone
         // nearby who speaks it.
@@ -246,7 +238,6 @@ export function useSos(
     return () => {
       on = false
       stopSiren()
-      flashRef.current?.(false)
       setAlarm(false)
     }
   }, [unreached, siren])
