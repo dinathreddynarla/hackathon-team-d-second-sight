@@ -156,18 +156,21 @@ export function analyse(
   return best
 }
 
-// Something standing in the way within 3 m: step to the side it leaves more room on, if that side is free, else the
+// Only on a collision course: something within about five steps whose box covers the centre line of the picture,
+// which is where the user is walking. Then step to the side it leaves more room on, if that side is free, else the
 // other side. Free means no person, vehicle or animal there within 5 m and, when the wall model is on, no wall near
 // on that side. Something coming at the user, or no free side: stop. With the wall model off, a wall or glass
 // beside the person cannot be seen; the cane still has the last word.
-// ponytail: thirds of the frame and fixed 3 m / 5 m limits; tune on a street walk.
+// ponytail: the centre line and fixed 3.5 m / 5 m limits; tune on a street walk.
+const STEER_WITHIN_M = 3.5 // about five steps
 export function steer(
   b: Target,
   all: Target[],
   frameW: number,
   wallNear: (side: 'left' | 'right') => boolean = () => false
 ): Guidance {
-  if (b.side !== 'ahead' || b.distance > 3) return null
+  const onCourse = b.box.x <= frameW / 2 && b.box.x + b.box.w >= frameW / 2
+  if (b.distance > STEER_WITHIN_M || !onCourse) return null
   if (b.approaching) return 'stop'
   const centre = b.box.x + b.box.w / 2
   const first: 'left' | 'right' = centre < frameW / 2 ? 'right' : 'left'

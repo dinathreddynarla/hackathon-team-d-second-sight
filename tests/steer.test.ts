@@ -52,9 +52,15 @@ test('something coming at the user: stop', () => {
   assert.equal(steer(c, [c], W), 'stop')
 })
 
-test('beyond 3 m, or to one side: no direction', () => {
+test('beyond about five steps, or off the walking line: no direction', () => {
   assert.equal(steer(t('person', 'ahead', 4, 220), [], W), null)
   assert.equal(steer(t('person', 'left', 2, 20), [], W), null)
+  // In the middle third but clear of the centre line (box 250-330 of 480): the user walks past it.
+  assert.equal(steer(t('person', 'ahead', 2, 250), [], W), null)
+})
+
+test('within five steps on the walking line: a direction', () => {
+  assert.equal(steer(t('person', 'ahead', 3.4, 220), [t('person', 'ahead', 3.4, 220)], W), 'left')
 })
 
 test('someone farther than 5 m on a side does not block it', () => {
