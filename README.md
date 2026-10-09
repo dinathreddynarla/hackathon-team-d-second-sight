@@ -100,9 +100,12 @@ Tested on: iQOO Neo 10 (Android 16). Needs Android 7 or newer and a WebView from
 
 ```
 src/
-  App.tsx                         page: status chips, camera view, language / scan, Start / Stop, dialogs
-  theme.ts                        one dark theme, tactile-paving yellow accent
-  components/StatusBar.tsx        Network / Model / Camera / fps chips (the offline proof on screen)
+  App.tsx                         page: status bubble, camera view, lane strip, scan / language, Start / Stop
+  theme.ts                        colours, shapes and type scale (see DESIGN.md)
+  components/StatusBar.tsx        status bubble: what the app is doing, and Offline / Network on (the offline proof)
+  components/LaneStrip.tsx        left / ahead / right: where the thing last warned about is
+  components/FallAlert.tsx        full-screen fall alert; the whole screen cancels
+  ui/                             bubble controls, icons, page pieces, English and Telugu labels, Back-to-close
   features/camera/useCamera.ts    back camera, releases on hide, restarts on return
   features/vision/detector.ts     MediaPipe setup, class allowlist, CPU/GPU choice
   features/vision/distance.ts     height table, K, frame thirds, approach rule, nearest target
@@ -120,6 +123,8 @@ android/app/src/main/java/com/teamd/secondsight/
 android/app/src/debug/AndroidManifest.xml   INTERNET only for debug builds (live reload)
 docs/STATUS.md                    current state, live-debug recipe, pending phone tests
 docs/PLAN.md                      links to the build guide and the 3D build map
+PRODUCT.md                        who the app is for and what must stay true
+DESIGN.md                         the visual system: tactile-paving textures, bubble controls, screen-reader rules
 ```
 
 ## Development

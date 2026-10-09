@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 
 import { pauseWarnings, scanSentence, speak, warn, type Lang } from '../speech/speech'
 import { createDetector, preferredDelegate } from './detector'
-import { analyse, analyseAll, calibrateK, loadK, saveK, type Target } from './distance'
+import { analyse, analyseAll, calibrateK, loadK, saveK, type Side, type Target } from './distance'
 
 export type ModelState = 'loading' | 'ready' | 'missing'
 
@@ -22,7 +22,11 @@ export function useDetection(
   const lastDetectionsRef = useRef<Detection[]>([])
   const [model, setModel] = useState<ModelState>('loading')
   const [lastSaid, setLastSaid] = useState('')
+  const [lane, setLane] = useState<Side | null>(null)
   const [fps, setFps] = useState(0)
+  // The caption and lane stay up only while they are still true: until this time, then they clear.
+  const shownRef = useRef(false)
+  const showUntilRef = useRef(0)
 
   useEffect(() => {
     let cancelled = false
@@ -68,8 +72,17 @@ export function useDetection(
       lastRatioRef.current = target?.label === 'person' ? target.box.h / video.videoHeight : 0
       draw(canvas, video, target)
       if (target) {
+        showUntilRef.current = Math.max(showUntilRef.current, now + 2000)
         const said = warn(target, langRef.current, now)
-        if (said) setLastSaid(said)
+        if (said) {
+          setLastSaid(said)
+          setLane(target.side)
+          shownRef.current = true
+        }
+      } else if (shownRef.current && now > showUntilRef.current) {
+        setLastSaid('')
+        setLane(null)
+        shownRef.current = false
       }
       frames++
       if (now - fpsAt > 1000) {
@@ -82,6 +95,10 @@ export function useDetection(
     return () => {
       clearInterval(id)
       lastDetectionsRef.current = []
+      shownRef.current = false
+      setLastSaid('')
+      setLane(null)
+      setFps(0)
     }
   }, [running, model, videoRef, canvasRef])
 
@@ -102,10 +119,13 @@ export function useDetection(
     pauseWarnings(true)
     void speak(text, langRef.current).finally(() => pauseWarnings(false))
     setLastSaid(text)
+    setLane(null)
+    shownRef.current = true
+    showUntilRef.current = performance.now() + 6000
     return text
   }, [videoRef, running, model])
 
-  return { model, lastSaid, fps, calibrate, scan, k: kRef.current }
+  return { model, lastSaid, lane, fps, calibrate, scan, k: kRef.current }
 }
 
 function draw(canvas: HTMLCanvasElement, video: HTMLVideoElement, target: Target | null) {
@@ -117,10 +137,9 @@ function draw(canvas: HTMLCanvasElement, video: HTMLVideoElement, target: Target
   if (!g) return
   g.clearRect(0, 0, canvas.width, canvas.height)
   if (!target) return
-  g.lineWidth = 4
+  // The outline only. What it is and how far is on the lane strip and the caption, where it cannot be cut off.
+  g.lineWidth = 5
+  g.lineJoin = 'round'
   g.strokeStyle = '#f2c230'
   g.strokeRect(target.box.x, target.box.y, target.box.w, target.box.h)
-  g.fillStyle = '#f2c230'
-  g.font = 'bold 22px system-ui'
-  g.fillText(`${target.label} ${target.distance.toFixed(1)} m`, target.box.x + 6, Math.max(26, target.box.y - 8))
 }

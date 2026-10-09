@@ -1,6 +1,9 @@
-import { Box, Button, Dialog, IconButton, Stack, Typography } from '@mui/material'
+import { Box, Stack, Typography } from '@mui/material'
+import { keyframes } from '@mui/material/styles'
 import { useEffect, useRef, useState } from 'react'
 
+import { FallAlert } from './components/FallAlert'
+import { LaneStrip } from './components/LaneStrip'
 import { StatusBar } from './components/StatusBar'
 import { useCamera } from './features/camera/useCamera'
 import { watchFalls } from './features/safety/fall'
@@ -11,8 +14,18 @@ import { useSettings } from './features/settings/settings'
 import { phrase, setVoiceFailureHandler, speak, type Lang } from './features/speech/speech'
 import { useDetection } from './features/vision/useDetection'
 import { isNative, onVolumeDouble, requestSosPermissions } from './native/setup'
+import { color, radius } from './theme'
+import { Bubble, Glass } from './ui/bubbles'
+import { GlobeIcon, ScanIcon, SettingsIcon, WearFigure } from './ui/icons'
+import { UI } from './ui/strings'
 
-// Layout rule: one large Start / Stop button fills the bottom of the screen. A blind user finds it by touch alone.
+// The one authored moment: the label settles in when Start becomes Stop and back.
+const settle = keyframes({
+  from: { opacity: 0.5, transform: 'scale(0.94)' },
+  to: { opacity: 1, transform: 'scale(1)' },
+})
+
+// Layout rule: one large Start / Stop bubble fills the bottom of the screen. A blind user finds it by touch alone.
 export function App() {
   const [settings, update] = useSettings()
   // English for this session only, when the chosen language's voice cannot speak. The saved choice is kept.
@@ -20,6 +33,7 @@ export function App() {
   const lang: Lang = voiceFallback ? 'en' : settings.lang
   const langRef = useRef(lang)
   langRef.current = lang
+  const s = UI[lang]
   const camera = useCamera()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const running = camera.state === 'running'
@@ -31,6 +45,7 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [setupOpen, setSetupOpen] = useState(!settings.setupDone)
   const lastTapRef = useRef(0)
+  const primaryRef = useRef<HTMLButtonElement>(null)
 
   const start = async () => {
     if ((await camera.start()) && model !== 'missing') void speak(phrase('ready', lang), lang)
@@ -62,6 +77,10 @@ export function App() {
     update({ lang: next })
     void speak(phrase('languageName', next), next)
   }
+  // A screen reader pronounces the labels with the right voice only if the page says which language it is in.
+  useEffect(() => {
+    document.documentElement.lang = lang
+  }, [lang])
 
   // Scan once: double tap the camera view, or press volume-up twice (native only).
   const scan = detection.scan
@@ -79,31 +98,51 @@ export function App() {
     return watchFalls(startSos)
   }, [running, startSos])
 
+  // Whenever the main screen is what the user is on, focus rests on Start / Stop, so a screen reader's
+  // double-tap anywhere starts or stops without hunting for the control.
+  const alertOpen = sos.state !== 'idle'
+  useEffect(() => {
+    if (!setupOpen && !settingsOpen && !alertOpen) primaryRef.current?.focus({ preventScroll: true })
+  }, [setupOpen, settingsOpen, alertOpen])
+
   return (
-    <Stack sx={{ height: '100%', p: 2, gap: 2 }}>
-      <Stack direction="row" sx={{ alignItems: 'center' }}>
-        <Typography variant="h5" component="h1" sx={{ flex: 1, textAlign: 'center' }}>
-          Second Sight
+    <Stack component="main" sx={{ height: '100%', p: 2, gap: 1.5 }}>
+      <Stack direction="row" sx={{ alignItems: 'center', minHeight: 48 }}>
+        <Typography variant="h1" sx={{ flex: 1 }}>
+          {s.appName}
         </Typography>
-        <IconButton aria-label="Settings" onClick={() => setSettingsOpen(true)} sx={{ fontSize: '1.6rem' }}>
-          ⚙
-        </IconButton>
+        <Bubble
+          aria-label={s.settings}
+          data-testid="settings-open"
+          onClick={() => setSettingsOpen(true)}
+          sx={{ width: 48, minWidth: 48, minHeight: 48, p: 0 }}
+        >
+          <SettingsIcon />
+        </Bubble>
       </Stack>
-      <StatusBar model={model} camera={camera.state} fps={detection.fps} />
+
       <Box
         onClick={onVideoTap}
         sx={{
           position: 'relative',
           flex: 1,
           minHeight: 0,
-          borderRadius: 3,
+          borderRadius: `${radius.card}px`,
           overflow: 'hidden',
-          bgcolor: 'background.paper',
+          bgcolor: color.kerb,
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.08)',
         }}
       >
-        <video ref={camera.videoRef} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        <video
+          ref={camera.videoRef}
+          playsInline
+          muted
+          aria-hidden
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
         <canvas
           ref={canvasRef}
+          aria-hidden
           style={{
             position: 'absolute',
             inset: 0,
@@ -113,52 +152,123 @@ export function App() {
             pointerEvents: 'none',
           }}
         />
-        <Typography
-          variant="h6"
-          aria-live="polite"
-          sx={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            bottom: 0,
-            p: 1.5,
-            textAlign: 'center',
-            bgcolor: 'rgba(0,0,0,.6)',
-          }}
-        >
-          {detection.lastSaid || (running ? 'Watching… double-tap to scan' : camera.error || 'Tap Start')}
-        </Typography>
+        {!running && (
+          <Stack
+            data-testid="idle-panel"
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1,
+              px: 3,
+              pt: 7.5,
+              pb: 2,
+              textAlign: 'center',
+              bgcolor: color.kerb,
+            }}
+          >
+            {/* Shrinks before anything else does: on a short screen the words keep their room. */}
+            <Box
+              sx={{
+                flex: '0 1 132px',
+                minHeight: 0,
+                aspectRatio: '1',
+                color: color.paving,
+                '@media (max-height: 600px)': { display: 'none' },
+              }}
+            >
+              <WearFigure />
+            </Box>
+            <Typography sx={{ fontSize: '1.25rem', fontWeight: 700 }}>{s.wearTitle}</Typography>
+            <Typography sx={{ color: color.chalk }}>{s.wearBody}</Typography>
+            {camera.error && (
+              <Typography data-testid="camera-error" variant="body2" sx={{ color: color.alarm }}>
+                {camera.error}
+              </Typography>
+            )}
+          </Stack>
+        )}
+        <Box sx={{ position: 'absolute', top: 12, left: 12, right: 12, display: 'flex' }}>
+          <StatusBar model={model} camera={camera.state} lang={lang} />
+        </Box>
+        {running && (
+          <Glass
+            data-testid="caption"
+            sx={{
+              position: 'absolute',
+              left: 12,
+              right: 12,
+              bottom: 12,
+              minHeight: 52,
+              display: 'grid',
+              placeItems: 'center',
+              px: 2.5,
+              py: 1,
+              borderRadius: '26px',
+              textAlign: 'center',
+              fontSize: '1.25rem',
+              fontWeight: 650,
+              lineHeight: 1.25,
+            }}
+          >
+            {detection.lastSaid || s.watchingHint}
+          </Glass>
+        )}
       </Box>
-      <Stack direction="row" spacing={1}>
-        <Button
-          variant="outlined"
-          onClick={() => changeLang(lang === 'en' ? 'te' : 'en')}
-          sx={{ flex: 1, fontSize: '1rem' }}
-        >
-          {lang === 'en' ? 'English' : 'తెలుగు'}
-        </Button>
-        <Button
-          variant="outlined"
+
+      <LaneStrip lane={detection.lane} lang={lang} />
+
+      <Stack direction="row" sx={{ gap: 1.5 }}>
+        <Bubble
+          data-testid="scan"
+          aria-label={s.scanLabel}
           disabled={!running || model !== 'ready'}
           onClick={() => scan()}
-          sx={{ flex: 1, fontSize: '1rem' }}
+          sx={{ flex: 1 }}
         >
-          Scan once
-        </Button>
+          <ScanIcon />
+          {s.scan}
+        </Bubble>
+        <Bubble
+          data-testid="lang-toggle"
+          aria-label={s.switchLanguage}
+          onClick={() => changeLang(lang === 'en' ? 'te' : 'en')}
+          sx={{ flex: 1 }}
+        >
+          <GlobeIcon />
+          {s.languageName}
+        </Bubble>
       </Stack>
-      <Button
-        variant={running ? 'outlined' : 'contained'}
-        color={running ? 'error' : 'primary'}
-        aria-label={running ? 'Stop Second Sight' : 'Start Second Sight'}
+
+      <Bubble
+        ref={primaryRef}
+        tone={running ? 'stop' : 'go'}
+        texture={running ? 'dots' : 'bars'}
+        data-testid="start-stop"
+        data-state={camera.state}
+        aria-label={running ? s.stopLabel : s.startLabel}
         onClick={running ? stop : start}
-        sx={{ minHeight: '26vh' }}
+        sx={{ minHeight: '26vh', borderRadius: `${radius.hero}px`, fontSize: '2.25rem', fontWeight: 800 }}
       >
-        {running ? 'Stop' : 'Start'}
-      </Button>
+        <Box
+          component="span"
+          key={running ? 'stop' : 'go'}
+          sx={{
+            animation: `${settle} 260ms cubic-bezier(0.16, 1, 0.3, 1)`,
+            '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
+          }}
+        >
+          {running ? s.stop : s.start}
+        </Box>
+      </Bubble>
+
       <SetupDialog
         open={setupOpen}
         lang={lang}
         sosNumber={settings.sosNumber}
+        onLang={changeLang}
+        onClose={() => setSetupOpen(false)}
         onDone={sosNumber => {
           update({ sosNumber, setupDone: true })
           setSetupOpen(false)
@@ -169,6 +279,7 @@ export function App() {
         lang={lang}
         sosNumber={settings.sosNumber}
         k={detection.k}
+        fps={detection.fps}
         running={running}
         onClose={() => {
           setSettingsOpen(false)
@@ -187,31 +298,7 @@ export function App() {
           sos.start()
         }}
       />
-      {/* An overlay, not a replacement screen: the camera view underneath must stay mounted or detection dies. */}
-      <Dialog fullScreen open={sos.state !== 'idle'} transitionDuration={0} aria-labelledby="sos-title">
-        <Stack sx={{ height: '100%', p: 2, gap: 2 }}>
-          <Typography id="sos-title" variant="h4" component="h1" sx={{ textAlign: 'center' }}>
-            {sos.state === 'countdown'
-              ? `Help in ${sos.secondsLeft} s`
-              : sos.state === 'sending'
-                ? 'Sending…'
-                : sos.state === 'sent'
-                  ? 'Help message sent'
-                  : sos.state === 'failed'
-                    ? 'Could not send'
-                    : ''}
-          </Typography>
-          <Button
-            variant="contained"
-            color="error"
-            aria-label={sos.state === 'countdown' ? 'I am okay, cancel' : 'Back'}
-            onClick={sos.cancel}
-            sx={{ flex: 1, fontSize: '2rem' }}
-          >
-            {sos.state === 'countdown' ? "I'm OK, cancel" : 'Back'}
-          </Button>
-        </Stack>
-      </Dialog>
+      <FallAlert state={sos.state} secondsLeft={sos.secondsLeft} lang={lang} onCancel={sos.cancel} />
     </Stack>
   )
 }
