@@ -4,4 +4,6 @@
     <string name="title_activity_main">Second Sight</string>
     <string name="package_name">com.teamd.secondsight</string>
     <string name="custom_url_scheme">com.teamd.secondsight</string>
+    <string name="a11y_shortcut_summary">Opens Second Sight and starts watching the road.</string>
+    <string name="a11y_shortcut_description">Use the accessibility shortcut (hold both volume keys) to open Second Sight with the camera already on, even from the lock screen. It speaks warnings about people and vehicles ahead.</string>
 </resources>

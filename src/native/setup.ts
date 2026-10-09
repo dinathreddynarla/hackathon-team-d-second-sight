@@ -5,6 +5,7 @@ type SetupPlugin = {
   openVoiceInstall(): Promise<void>
   sendSms(options: { to: string; text: string }): Promise<void>
   call(options: { to: string }): Promise<void>
+  consumeAutostart(): Promise<{ autostart: boolean }>
   // Inherited from Capacitor's Plugin class: asks for the SEND_SMS permission declared in SetupPlugin.java.
   requestPermissions(): Promise<unknown>
 }
@@ -70,4 +71,18 @@ export function onVolumeDouble(handler: () => void): () => void {
 export function onVolumeDownHold(handler: () => void): () => void {
   window.addEventListener('volumeDownHold', handler)
   return () => window.removeEventListener('volumeDownHold', handler)
+}
+
+// Opened by Android's accessibility shortcut (hold both volume keys): start watching without a tap.
+// Covers both cases: a cold start (asked once on load) and the app already open (a window event from MainActivity).
+export function onAutostart(handler: () => void): () => void {
+  if (!isNative) return () => undefined
+  // The request is held natively and collected once, so a load and an event racing each other start only once.
+  const collect = () =>
+    void Setup.consumeAutostart()
+      .then(r => r.autostart && handler())
+      .catch(() => undefined)
+  window.addEventListener('autostart', collect)
+  collect()
+  return () => window.removeEventListener('autostart', collect)
 }

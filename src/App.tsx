@@ -14,7 +14,7 @@ import { SetupDialog } from './features/settings/SetupDialog'
 import { useSettings } from './features/settings/settings'
 import { announce, phrase, setVoiceFailureHandler, speak, type Lang } from './features/speech/speech'
 import { useDetection } from './features/vision/useDetection'
-import { isNative, onVolumeDouble, onVolumeDownHold, requestSosPermissions } from './native/setup'
+import { isNative, onAutostart, onVolumeDouble, onVolumeDownHold, requestSosPermissions } from './native/setup'
 import { color, radius } from './theme'
 import { Bubble, Glass } from './ui/bubbles'
 import { GlobeIcon, ScanIcon, SettingsIcon, WearFigure } from './ui/icons'
@@ -101,6 +101,19 @@ export function App() {
     if (!running || !isNative) return
     return watchFalls(kind => startSos(kind === 'impact' ? 'fall' : 'lyingStill'))
   }, [running, startSos])
+
+  // Opened by the accessibility shortcut: start straight away, unless setup still needs a sighted helper.
+  const startRef = useRef(start)
+  startRef.current = start
+  const runningRef = useRef(running)
+  runningRef.current = running
+  useEffect(
+    () =>
+      onAutostart(() => {
+        if (settings.setupDone && !runningRef.current) void startRef.current()
+      }),
+    [settings.setupDone]
+  )
 
   // Asking for help on purpose: hold volume-down for 2 s, whether or not the camera is running.
   useEffect(() => onVolumeDownHold(() => startSos('manual')), [startSos])

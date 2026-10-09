@@ -64,6 +64,7 @@ makes single numbers dishonest.
 - Scan once: double-tap the view or press volume-up twice to hear everything in front of you
 - English (India) and Telugu voices
 - Fall detection, two rules: an impact then stillness (15 s to cancel), or a collapse then 30 s lying still (30 s to cancel); then an SOS SMS with a maps link, then "tap anywhere to call your contact"
+- **Open and start without finding anything:** assign Second Sight to Android's accessibility shortcut, then hold both volume keys for 3 s, even from the lock screen. The camera starts by itself
 - Ask for help on purpose: hold volume-down for 2 s (10 s to cancel)
 - Spoken status: battery at 20% and 10% with the real level, "Camera blocked. Clear the lens.", "Camera can't see. Warnings may be missed."
 - Works in flight mode after a one-time setup (voices are downloaded by Android's own text-to-speech settings).
@@ -92,9 +93,10 @@ _To be written._
 
 1. Download `second-sight.apk` from the Releases page (built with `pnpm apk:release`, no INTERNET permission).
 2. On the phone open the file, allow "install unknown apps" when asked. If Play Protect warns, choose "Install anyway".
-3. Open Second Sight. One-time setup: tap Install voices, download English (India) and Telugu (needs Wi-Fi once), tap Test voice, Done. If you enter an emergency number, allow SMS and location when asked.
-4. Allow the camera. Detection and speech work with airplane mode on. Keep it off if you rely on the fall SOS, which needs mobile signal to send its SMS.
-5. Hang the phone at chest height, camera facing forward. Tap the large button at the bottom to start, and again to stop. Double-tap the view to scan once.
+3. Optional, recommended: Settings → Accessibility → Second Sight → turn on its shortcut (choose "volume keys"). Holding both volume keys then opens it with the camera on.
+4. Open Second Sight. One-time setup: tap Install voices, download English (India) and Telugu (needs Wi-Fi once), tap Test voice, Done. If you enter an emergency number, allow SMS and location when asked.
+5. Allow the camera. Detection and speech work with airplane mode on. Keep it off if you rely on the fall SOS, which needs mobile signal to send its SMS.
+6. Hang the phone at chest height, camera facing forward. Tap the large button at the bottom to start, and again to stop. Double-tap the view to scan once.
 
 Tested on: iQOO Neo 10 (Android 16). Needs Android 7 or newer and a WebView from 2021 or later.
 

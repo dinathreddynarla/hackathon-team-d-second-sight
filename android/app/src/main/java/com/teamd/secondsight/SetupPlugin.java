@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.net.Uri;
 import android.telephony.SmsManager;
+import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -82,5 +83,13 @@ public class SetupPlugin extends Plugin {
         } catch (Exception e) {
             call.reject(e.getMessage());
         }
+    }
+
+    // True once if the app was opened by the accessibility shortcut and the camera should start by itself.
+    @PluginMethod
+    public void consumeAutostart(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("autostart", MainActivity.consumeAutostart());
+        call.resolve(result);
     }
 }
