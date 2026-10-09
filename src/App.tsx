@@ -7,13 +7,14 @@ import { LaneStrip } from './components/LaneStrip'
 import { StatusBar } from './components/StatusBar'
 import { useCamera } from './features/camera/useCamera'
 import { watchFalls } from './features/safety/fall'
+import { useBatteryAlerts, useCameraViewAlerts } from './features/safety/useDeviceAlerts'
 import { useSos } from './features/safety/useSos'
 import { SettingsDialog } from './features/settings/SettingsDialog'
 import { SetupDialog } from './features/settings/SetupDialog'
 import { useSettings } from './features/settings/settings'
 import { announce, phrase, setVoiceFailureHandler, speak, type Lang } from './features/speech/speech'
 import { useDetection } from './features/vision/useDetection'
-import { isNative, onVolumeDouble, requestSosPermissions } from './native/setup'
+import { isNative, onVolumeDouble, onVolumeDownHold, requestSosPermissions } from './native/setup'
 import { color, radius } from './theme'
 import { Bubble, Glass } from './ui/bubbles'
 import { GlobeIcon, ScanIcon, SettingsIcon, WearFigure } from './ui/icons'
@@ -98,8 +99,15 @@ export function App() {
   const startSos = sos.start
   useEffect(() => {
     if (!running || !isNative) return
-    return watchFalls(startSos)
+    return watchFalls(kind => startSos(kind === 'impact' ? 'fall' : 'lyingStill'))
   }, [running, startSos])
+
+  // Asking for help on purpose: hold volume-down for 2 s, whether or not the camera is running.
+  useEffect(() => onVolumeDownHold(() => startSos('manual')), [startSos])
+
+  // What the user cannot see: a low battery, a covered lens, a scene too dark to read.
+  useBatteryAlerts(langRef)
+  useCameraViewAlerts(camera.videoRef, running && !alertBusy, langRef)
 
   // Whenever the main screen is what the user is on, focus rests on Start / Stop, so a screen reader's
   // double-tap anywhere starts or stops without hunting for the control.
@@ -298,10 +306,18 @@ export function App() {
         }}
         onTestFall={() => {
           setSettingsOpen(false)
-          sos.start()
+          sos.start('fall')
         }}
       />
-      <FallAlert state={sos.state} secondsLeft={sos.secondsLeft} lang={lang} onCancel={sos.cancel} />
+      <FallAlert
+        state={sos.state}
+        reason={sos.reason}
+        secondsLeft={sos.secondsLeft}
+        lang={lang}
+        canCall={sos.canCall}
+        onCancel={sos.cancel}
+        onCall={sos.call}
+      />
     </Stack>
   )
 }

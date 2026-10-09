@@ -1,21 +1,33 @@
 import { Box, ButtonBase, Dialog, Stack, Typography } from '@mui/material'
 
-import type { SosState } from '../features/safety/useSos'
+import type { SosReason, SosState } from '../features/safety/useSos'
 import type { Lang } from '../features/speech/speech'
 import { color, focusRing, focusVisible, radius } from '../theme'
 import { UI } from '../ui/strings'
 
-type Props = { state: SosState; secondsLeft: number; lang: Lang; onCancel: () => void }
+type Props = {
+  state: SosState
+  reason: SosReason
+  secondsLeft: number
+  lang: Lang
+  canCall: boolean
+  onCancel: () => void
+  onCall: () => void
+}
 
 const CANCEL_HEIGHT = 72
 
 // Fills the screen over the main view (which must stay mounted underneath, or detection dies). The whole
 // screen is the cancel button and takes focus, so one tap, or a screen reader's double-tap anywhere, cancels.
-export function FallAlert({ state, secondsLeft, lang, onCancel }: Props) {
+export function FallAlert({ state, reason, secondsLeft, lang, canCall, onCancel, onCall }: Props) {
   const s = UI[lang].alert
   const counting = state === 'countdown'
+  // Once the message is out (or failed), one tap anywhere calls the contact; the Back key still closes.
+  const offerCall = canCall && (state === 'sent' || state === 'failed')
   const title = counting
-    ? s.question
+    ? reason === 'manual'
+      ? s.helpQuestion
+      : s.question
     : state === 'sending'
       ? s.sending
       : state === 'sent'
@@ -28,6 +40,7 @@ export function FallAlert({ state, secondsLeft, lang, onCancel }: Props) {
     <Dialog
       fullScreen
       open={state !== 'idle'}
+      onClose={onCancel}
       transitionDuration={0}
       disableRestoreFocus
       aria-labelledby="alert-title"
@@ -45,8 +58,8 @@ export function FallAlert({ state, secondsLeft, lang, onCancel }: Props) {
         autoFocus
         data-testid="alert-cancel"
         data-state={state}
-        aria-label={counting ? s.cancelLabel : s.back}
-        onClick={onCancel}
+        aria-label={counting ? s.cancelLabel : offerCall ? s.callContact : s.back}
+        onClick={offerCall ? onCall : onCancel}
         sx={{
           position: 'absolute',
           inset: 0,
@@ -77,7 +90,7 @@ export function FallAlert({ state, secondsLeft, lang, onCancel }: Props) {
             boxShadow: 'inset 0 -10px 22px rgba(152,21,21,0.1), 0 12px 28px rgba(0,0,0,0.4)',
           }}
         >
-          {counting ? s.tapAnywhere : s.back}
+          {counting ? s.tapAnywhere : offerCall ? s.callContact : s.back}
         </Box>
       </ButtonBase>
       {/* Above the button for the eye, transparent to touch. */}

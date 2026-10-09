@@ -25,6 +25,14 @@ export type Phrase =
   | 'modelMissing'
   | 'voiceMissing'
   | 'languageName'
+  | 'batteryLow'
+  | 'batteryCritical'
+  | 'cameraBlocked'
+  | 'tooDark'
+  | 'cameraClear'
+  | 'helpPrompt'
+  | 'stillPrompt'
+  | 'callOffer'
 
 type Words = {
   tag: string
@@ -87,6 +95,14 @@ const WORDS: Record<Lang, Words> = {
       modelMissing: 'Detection could not start. Reinstall the app.',
       voiceMissing: 'That voice is not installed. Open settings and tap install offline voices.',
       languageName: 'English',
+      batteryLow: 'Battery {n} percent. Charge soon.',
+      batteryCritical: 'Battery {n} percent. Charge now.',
+      cameraBlocked: 'Camera blocked. Clear the lens.',
+      tooDark: "Camera can't see. Warnings may be missed.",
+      cameraClear: 'Camera clear.',
+      helpPrompt: 'Asking for help. Tap to cancel.',
+      stillPrompt: 'You have not moved for 30 seconds. Are you okay? Tap the screen to cancel.',
+      callOffer: 'Tap anywhere to call your contact.',
     },
   },
   te: {
@@ -137,6 +153,14 @@ const WORDS: Record<Lang, Words> = {
       modelMissing: 'డిటెక్షన్ ప్రారంభం కాలేదు.',
       voiceMissing: 'ఆ వాయిస్ ఇన్‌స్టాల్ కాలేదు. సెట్టింగ్స్ తెరిచి, ఇన్‌స్టాల్ ఆఫ్‌లైన్ వాయిసెస్ నొక్కండి.',
       languageName: 'తెలుగు',
+      batteryLow: 'బ్యాటరీ {n} శాతం. త్వరలో ఛార్జ్ చేయండి.',
+      batteryCritical: 'బ్యాటరీ {n} శాతం. ఇప్పుడే ఛార్జ్ చేయండి.',
+      cameraBlocked: 'కెమెరాకు అడ్డు ఉంది. లెన్స్ శుభ్రం చేయండి.',
+      tooDark: 'కెమెరాకు కనిపించడం లేదు. హెచ్చరికలు తప్పిపోవచ్చు.',
+      cameraClear: 'కెమెరా స్పష్టం.',
+      helpPrompt: 'సహాయం అడుగుతోంది. రద్దు చేయడానికి నొక్కండి.',
+      stillPrompt: 'మీరు ముప్పై సెకన్లుగా కదలలేదు. బాగున్నారా? రద్దు చేయడానికి స్క్రీన్ నొక్కండి.',
+      callOffer: 'మీ కాంటాక్ట్‌కు కాల్ చేయడానికి ఎక్కడైనా నొక్కండి.',
     },
   },
 }
@@ -216,7 +240,12 @@ export function setVoiceFailureHandler(handler: ((lang: Lang, text: string) => v
   onVoiceFailure = handler
 }
 
-async function stopSpeaking(): Promise<void> {
+// Generous upper bound on how long a sentence takes to say: words at 2.6 per second plus engine start-up.
+function speakingTimeMs(text: string): number {
+  return (text.split(/\s+/).length / 2.6) * 1000 + 1200
+}
+
+export async function stopSpeaking(): Promise<void> {
   if (Capacitor.isNativePlatform()) await TextToSpeech.stop().catch(() => undefined)
   else speechSynthesis.cancel()
 }
@@ -224,7 +253,12 @@ async function stopSpeaking(): Promise<void> {
 async function speakRaw(text: string, lang: Lang): Promise<void> {
   if (Capacitor.isNativePlatform()) {
     try {
-      await TextToSpeech.speak({ text, lang: WORDS[lang].tag, rate: 1.0, category: 'ambient' })
+      // Android never settles a sentence that was stopped mid-way. The guard settles it anyway, so nothing that
+      // waits on speech (the queue, the SOS countdown) can hang forever.
+      await Promise.race([
+        TextToSpeech.speak({ text, lang: WORDS[lang].tag, rate: 1.0, category: 'ambient' }),
+        new Promise<void>(resolve => window.setTimeout(resolve, speakingTimeMs(text))),
+      ])
     } catch (err) {
       // A missing voice must not mean silence. Only "not supported" means missing; other errors are transient.
       const message = err instanceof Error ? err.message : String(err)
@@ -236,8 +270,7 @@ async function speakRaw(text: string, lang: Lang): Promise<void> {
   await new Promise<void>(resolve => {
     const u = new SpeechSynthesisUtterance(text)
     u.lang = WORDS[lang].tag
-    const words = text.split(/\s+/).length
-    const guard = window.setTimeout(resolve, (words / 2.6) * 1000 + 800) // headless engines never fire onend
+    const guard = window.setTimeout(resolve, speakingTimeMs(text)) // headless engines never fire onend
     u.onend = u.onerror = () => {
       clearTimeout(guard)
       resolve()

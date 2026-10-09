@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Turn a run's transcript into per-document JSON files for the Ravi bench artifact database.
+"""Turn a run's transcript into per-document JSON files for the Surya bench artifact database.
 
 Usage:
   push-events.py scenes <run-id> <version-label> <note> /tmp/voice-transcript-vN.json   [--frames none]
   push-events.py footage <run-id> <version-label> <note> <outDir-with-transcript.json>
 
-Writes <out>/run.json and <out>/events/<seq>.json under /tmp/ravi-push/<run-id>/ and prints a batch manifest
+Writes <out>/run.json and <out>/events/<seq>.json under /tmp/surya-push/<run-id>/ and prints a batch manifest
 (JSON list of {op,collection,doc_id,file_path}) in chunks of at most 20 writes, ready for the ArtifactData batch action.
 Frames are embedded as data URIs (about 36 KB each), well under the 256 KiB document limit.
 """
 import base64, json, os, sys, time
 
 kind, run_id, version, note, src = sys.argv[1:6]
-out = f'/tmp/ravi-push/{run_id}'
+out = f'/tmp/surya-push/{run_id}'
 os.makedirs(f'{out}/events', exist_ok=True)
 events = []
 if kind == 'scenes':

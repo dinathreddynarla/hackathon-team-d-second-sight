@@ -33,6 +33,8 @@ const en = {
   wearBody: 'Camera facing forward. Then press Start.',
   alert: {
     question: 'Are you OK?',
+    helpQuestion: 'Asking for help',
+    callContact: 'Tap anywhere to call your contact',
     helpIn: (n: number) => `Help message in ${n} seconds`,
     tapAnywhere: 'Tap anywhere if you are OK',
     cancelLabel: 'Tap anywhere if you are OK. This cancels the help message.',
@@ -115,6 +117,8 @@ const te: Strings = {
   wearBody: 'కెమెరా ముందుకు ఉండాలి. తర్వాత ప్రారంభించు నొక్కండి.',
   alert: {
     question: 'మీరు బాగున్నారా?',
+    helpQuestion: 'సహాయం అడుగుతోంది',
+    callContact: 'కాల్ చేయడానికి ఎక్కడైనా నొక్కండి',
     helpIn: n => `${n} సెకన్లలో సహాయ సందేశం`,
     tapAnywhere: 'బాగుంటే ఎక్కడైనా నొక్కండి',
     cancelLabel: 'బాగుంటే ఎక్కడైనా నొక్కండి. దీనితో సహాయ సందేశం రద్దవుతుంది.',

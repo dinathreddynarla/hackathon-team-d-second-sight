@@ -63,7 +63,9 @@ makes single numbers dishonest.
 - Speaks distance and direction, warns when something approaches, vibrates under 3 m
 - Scan once: double-tap the view or press volume-up twice to hear everything in front of you
 - English (India) and Telugu voices
-- Fall detection with a 15 s cancel window, then an SOS SMS with a maps link to a saved number
+- Fall detection, two rules: an impact then stillness (15 s to cancel), or a collapse then 30 s lying still (30 s to cancel); then an SOS SMS with a maps link, then "tap anywhere to call your contact"
+- Ask for help on purpose: hold volume-down for 2 s (10 s to cancel)
+- Spoken status: battery at 20% and 10% with the real level, "Camera blocked. Clear the lens.", "Camera can't see. Warnings may be missed."
 - Works in flight mode after a one-time setup (voices are downloaded by Android's own text-to-speech settings).
   The fall SOS is the exception: an SMS needs mobile signal, so it cannot send in flight mode
 - One large Start / Stop button fills the bottom of the screen and confirms by voice, so it is found by touch alone
