@@ -4,6 +4,12 @@ Offline Android app for blind pedestrians: on-device models watch the way ahead 
 speaks short warnings. Capacitor 8 shell around a Vite + React 19 + MUI 9 + TypeScript page; models run with
 MediaPipe and ONNX Runtime (WebAssembly) inside the APK.
 
+## Download
+
+**[SecondSight-v1.0.apk](https://github.com/dinathreddynarla/hackathon-team-d-second-sight/releases/download/v1.0/SecondSight-v1.0.apk)**
+(about 80 MB, from the [v1.0 release](https://github.com/dinathreddynarla/hackathon-team-d-second-sight/releases/tag/v1.0)).
+Install steps and fixes for "App not installed" are under [Building and sharing the APK](#building-and-sharing-the-apk).
+
 ## Prerequisites
 
 - Node 20 or newer, pnpm 10 (`corepack enable`)
@@ -95,7 +101,7 @@ with the debug key of the machine that built it. Share it renamed as `SecondSigh
 
 Installing it on a phone:
 
-1. Get `SecondSight-v1.0.apk` from the team (WhatsApp or Drive) or from the Releases page.
+1. Download `SecondSight-v1.0.apk` from the link at the top, or get it from the team.
 2. **If any earlier Second Sight is on the phone, uninstall it first.** An APK built on another laptop is signed with
    a different key, and Android then just says "App not installed".
 3. Open the APK. Allow "install unknown apps" for the app you opened it from (WhatsApp, Files, Chrome).

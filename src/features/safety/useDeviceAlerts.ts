@@ -1,6 +1,5 @@
 import { useEffect, useRef, type RefObject } from 'react'
 
-import { hasTorch, setTorch, torchOn } from '../camera/torch'
 import { noteCameraView, obstacleNearRecently } from '../obstacles/useObstacles'
 import { announce, isSpeaking, phrase, speak, type Lang } from '../speech/speech'
 
@@ -85,11 +84,10 @@ const DARK_MEAN = 35
 // cannot tell which of them it is (or a pale wall).
 const HAZY_STD = 18
 const HAZY_MEAN = 90
-// With the torch on, a picture this black and this even means the light is reaching nothing: the lens is against
-// something. An open street at night still shows the lit ground.
+// A picture this black and this even shows nothing at all (a lens against something, or no light whatever). The wall
+// model is not trusted then; a dim room still shows its walls.
 const PITCH_MEAN = 12
 const PITCH_STD = 4
-const TORCH_TRIES = 3
 type ViewStats = { mean: number; std: number }
 function viewStats(pixels: Uint8ClampedArray): ViewStats {
   let sum = 0
@@ -122,36 +120,13 @@ const RETRY_MS = 5000
 
 // While the camera runs: a problem must hold for two checks (4 s) before it is spoken, is repeated every 30 s
 // (blocked) or 2.5 minutes (dark) while it lasts, and its end is spoken once.
-// In the dark the torch is tried first (`torch`: the setting): it lets the camera see a few metres, and lets drivers
-// see the user. Once lit it stays lit until the camera stops, unless it turns out to be lighting a covered lens:
-// then it goes out and the view is spoken as blocked, which the user can do something about.
 export function useCameraViewAlerts(
   videoRef: RefObject<HTMLVideoElement | null>,
   running: boolean,
-  langRef: RefObject<Lang>,
-  torch: boolean
+  langRef: RefObject<Lang>
 ) {
   useEffect(() => {
     if (!running) return
-    if (!torch && torchOn(videoRef.current)) void setTorch(videoRef.current, false)
-    // Lit and it showed nothing: a hand or a pocket is over the lens. Not tried again until something shows in the
-    // picture, and three times at most before the view has been clear, or a pocket would blink all day.
-    let covered = false
-    let torchTries = 0
-    let litBlind = 0
-    // "Dark. Torch on." is news about the phone, not about the street: it waits for a gap, and never cuts a warning.
-    // A warning may cut it; then it is said again a few seconds later, if the torch is still lit.
-    let torchNews = 0
-    const sayTorchOn = () => {
-      clearInterval(torchNews)
-      torchNews = window.setInterval(() => {
-        if (isSpeaking()) return
-        clearInterval(torchNews)
-        void speak(phrase('torchOn', langRef.current), langRef.current).then(heard => {
-          if (!heard && torchOn(videoRef.current)) torchNews = window.setTimeout(sayTorchOn, RETRY_MS)
-        })
-      }, 300)
-    }
     const canvas = document.createElement('canvas')
     canvas.width = 32
     canvas.height = 24
@@ -167,29 +142,13 @@ export function useCameraViewAlerts(
       const stats = viewStats(g.getImageData(0, 0, canvas.width, canvas.height).data)
       const raw = classify(stats)
       const pitch = stats.mean < PITCH_MEAN && stats.std < PITCH_STD
-      // Depth is distrusted only for a covered lens or a pitch-black picture: a dim room still shows its walls.
       noteCameraView(raw === 'blocked' || pitch ? 'blocked' : 'clear')
       // A wall at the lens is flat too: when depth says something is near, it is an obstacle, not a covered lens.
       const seen = raw === 'blocked' && obstacleNearRecently() ? 'clear' : raw
-      if (torchOn(video)) {
-        litBlind = seen === 'blocked' || pitch ? litBlind + 1 : 0
-        if (litBlind >= 2) {
-          litBlind = 0
-          covered = true
-          torchTries++
-          clearTimeout(torchNews)
-          void setTorch(video, false)
-        }
-      } else if (seen === 'clear') {
-        covered = false
-        torchTries = 0
-      } else if (seen === 'dark' && !pitch) covered = false
       // A washed-out view is spoken like a dark one: "Camera can't see" is true of both, and "unclear" would sound
       // too much like "clear". While "blocked" is the last thing said it counts as that still going on, so a view
-      // hovering between the two is not announced back and forth. And once the torch has shown the lens to be
-      // covered, a dark view is that cover, not the night.
-      const state =
-        seen === 'unclear' ? (spoken === 'blocked' ? 'blocked' : 'dark') : seen === 'dark' && covered ? 'blocked' : seen
+      // hovering between the two is not announced back and forth.
+      const state = seen === 'unclear' ? (spoken === 'blocked' ? 'blocked' : 'dark') : seen
       streak = state === last ? streak + 1 : 1
       last = state
       const now = performance.now()
@@ -201,20 +160,6 @@ export function useCameraViewAlerts(
         return
       }
       if (streak < 2) return
-      if (state === 'dark' && torch && torchTries < TORCH_TRIES && !torchOn(video) && hasTorch(video)) {
-        // Lit, the view gets another two checks; if it is still dark then, "Camera can't see" is said (again, if it
-        // was said before the torch: "torch on" must not sound like the cure). Not lit, that is said next check.
-        void setTorch(video, true).then(ok => {
-          if (!ok) {
-            torchTries = TORCH_TRIES // this camera will not light it: stop asking
-            return
-          }
-          streak = 0
-          spoken = 'clear'
-          sayTorchOn()
-        })
-        return
-      }
       if (state !== spoken || now - spokenAt > REPEAT_MS[state]) {
         spoken = state
         spokenAt = now
@@ -226,10 +171,6 @@ export function useCameraViewAlerts(
         })
       }
     }, CHECK_MS)
-    return () => {
-      clearInterval(id)
-      // One id space for both kinds of timer: this stops the wait for a gap, or the wait to try again.
-      clearTimeout(torchNews)
-    }
-  }, [videoRef, running, langRef, torch])
+    return () => clearInterval(id)
+  }, [videoRef, running, langRef])
 }

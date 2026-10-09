@@ -19,7 +19,6 @@ export const SOS_MS = PATTERN.reduce((t, [on, off]) => t + on + off, 0) * UNIT_S
 let context: AudioContext | null = null
 let tone: OscillatorNode | null = null
 let gate: GainNode | null = null
-const timers: number[] = []
 
 // True once it can sound (false: this phone or browser has no sound output to give).
 export function startSiren(): boolean {
@@ -42,25 +41,18 @@ export function startSiren(): boolean {
   }
 }
 
-// One S O S. `flash` (the torch) follows the beeps, so at night the alarm is seen as well as heard.
-export function beepSos(flash?: (on: boolean) => void): void {
+// One S O S.
+export function beepSos(): void {
   if (!context || !gate) return
   let at = context.currentTime + 0.05
-  let ms = 50
   for (const [on, off] of PATTERN) {
     gate.gain.setValueAtTime(1, at)
     gate.gain.setValueAtTime(0, at + on * UNIT_S)
-    if (flash) {
-      timers.push(window.setTimeout(() => flash(true), ms))
-      timers.push(window.setTimeout(() => flash(false), ms + on * UNIT_S * 1000))
-    }
     at += (on + off) * UNIT_S
-    ms += (on + off) * UNIT_S * 1000
   }
 }
 
 export function stopSiren(): void {
-  timers.splice(0).forEach(clearTimeout)
   if (!tone) return
   tone.stop()
   tone.disconnect()

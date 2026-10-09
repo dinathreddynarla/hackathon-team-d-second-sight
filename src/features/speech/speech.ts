@@ -58,7 +58,6 @@ export type Phrase =
   | 'cameraBlocked'
   | 'tooDark'
   | 'cameraClear'
-  | 'torchOn'
   | 'alarmOn'
   | 'bystander'
   | 'alarmTwoMore'
@@ -184,7 +183,6 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'Camera blocked. Clear the lens.',
       tooDark: "Camera can't see. Warnings may be missed.",
       cameraClear: 'Camera clear.',
-      torchOn: 'Dark. Torch on.',
       alarmOn: 'Alarm on. Tap three times to stop.',
       bystander: 'Emergency. This person needs help. Please call one one two.',
       alarmTwoMore: 'Two more taps.',
@@ -289,7 +287,6 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'కెమెరాకు అడ్డు ఉంది. లెన్స్ శుభ్రం చేయండి.',
       tooDark: 'కెమెరాకు కనిపించడం లేదు. హెచ్చరికలు తప్పిపోవచ్చు.',
       cameraClear: 'కెమెరా స్పష్టం.',
-      torchOn: 'చీకటిగా ఉంది. టార్చ్ ఆన్ అయింది.',
       alarmOn: 'అలారం ఆన్. ఆపడానికి మూడు సార్లు నొక్కండి.',
       bystander: 'అత్యవసరం. ఈ వ్యక్తికి సహాయం కావాలి. దయచేసి 1 1 2 కి కాల్ చేయండి.',
       alarmTwoMore: 'ఇంకా రెండు సార్లు.',
@@ -393,7 +390,6 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'कैमरा ढका है। लेंस साफ़ करें।',
       tooDark: 'कैमरा देख नहीं पा रहा। चेतावनियाँ छूट सकती हैं।',
       cameraClear: 'कैमरा साफ़।',
-      torchOn: 'अँधेरा है। टॉर्च चालू।',
       alarmOn: 'अलार्म चालू। रोकने के लिए तीन बार दबाएँ।',
       bystander: 'आपातकाल। इस व्यक्ति को मदद चाहिए। कृपया 1 1 2 पर कॉल करें।',
       alarmTwoMore: 'दो बार और।',
@@ -498,7 +494,6 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'கேமரா மறைக்கப்பட்டுள்ளது. லென்ஸைச் சுத்தம் செய்யவும்.',
       tooDark: 'கேமராவுக்குத் தெரியவில்லை. எச்சரிக்கைகள் தவறலாம்.',
       cameraClear: 'கேமரா தெளிவு.',
-      torchOn: 'இருட்டாக உள்ளது. டார்ச் ஆன்.',
       alarmOn: 'அலாரம் ஆன். நிறுத்த மூன்று முறை தட்டவும்.',
       bystander: 'அவசரம். இவருக்கு உதவி தேவை. தயவுசெய்து 1 1 2 ஐ அழைக்கவும்.',
       alarmTwoMore: 'இன்னும் இரண்டு முறை.',
@@ -603,7 +598,6 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'ಕ್ಯಾಮೆರಾ ಮುಚ್ಚಿದೆ. ಲೆನ್ಸ್ ಸ್ವಚ್ಛಗೊಳಿಸಿ.',
       tooDark: 'ಕ್ಯಾಮೆರಾಗೆ ಕಾಣುತ್ತಿಲ್ಲ. ಎಚ್ಚರಿಕೆಗಳು ತಪ್ಪಬಹುದು.',
       cameraClear: 'ಕ್ಯಾಮೆರಾ ಸ್ಪಷ್ಟ.',
-      torchOn: 'ಕತ್ತಲಾಗಿದೆ. ಟಾರ್ಚ್ ಆನ್ ಆಗಿದೆ.',
       alarmOn: 'ಅಲಾರಂ ಆನ್. ನಿಲ್ಲಿಸಲು ಮೂರು ಬಾರಿ ಒತ್ತಿ.',
       bystander: 'ತುರ್ತು ಪರಿಸ್ಥಿತಿ. ಈ ವ್ಯಕ್ತಿಗೆ ಸಹಾಯ ಬೇಕು. ದಯವಿಟ್ಟು 1 1 2 ಗೆ ಕರೆ ಮಾಡಿ.',
       alarmTwoMore: 'ಇನ್ನೂ ಎರಡು ಬಾರಿ.',
