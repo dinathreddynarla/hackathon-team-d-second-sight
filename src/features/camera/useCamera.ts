@@ -18,7 +18,8 @@ export function useCamera() {
     setState('idle')
   }, [])
 
-  const start = useCallback(async () => {
+  // Resolves true once the camera is running, false if it could not start (the reason is in `error`).
+  const start = useCallback(async (): Promise<boolean> => {
     setState('starting')
     setError(null)
     try {
@@ -33,9 +34,11 @@ export function useCamera() {
       await video.play()
       wasRunningRef.current = true
       setState('running')
+      return true
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
       setState('error')
+      return false
     }
   }, [])
 

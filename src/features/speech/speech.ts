@@ -21,6 +21,10 @@ export type Phrase =
   | 'sosFailed'
   | 'sosCancelled'
   | 'noSosNumber'
+  | 'cameraFailed'
+  | 'modelMissing'
+  | 'voiceMissing'
+  | 'languageName'
 
 type Words = {
   tag: string
@@ -73,6 +77,10 @@ const WORDS: Record<Lang, Words> = {
       sosFailed: 'Could not send the help message.',
       sosCancelled: 'Cancelled.',
       noSosNumber: 'No emergency number saved. Add one in settings.',
+      cameraFailed: 'Camera did not start. Check the camera permission.',
+      modelMissing: 'Detection could not start.',
+      voiceMissing: 'That voice is not installed. Open settings and tap install offline voices.',
+      languageName: 'English',
     },
   },
   te: {
@@ -116,6 +124,10 @@ const WORDS: Record<Lang, Words> = {
       sosFailed: 'సహాయ సందేశం పంపలేకపోయాం.',
       sosCancelled: 'రద్దు చేయబడింది.',
       noSosNumber: 'అత్యవసర నంబర్ సేవ్ కాలేదు. సెట్టింగ్స్‌లో జోడించండి.',
+      cameraFailed: 'కెమెరా ప్రారంభం కాలేదు. కెమెరా అనుమతిని చూడండి.',
+      modelMissing: 'డిటెక్షన్ ప్రారంభం కాలేదు.',
+      voiceMissing: 'ఆ వాయిస్ ఇన్‌స్టాల్ కాలేదు. సెట్టింగ్స్ తెరిచి, ఇన్‌స్టాల్ ఆఫ్‌లైన్ వాయిసెస్ నొక్కండి.',
+      languageName: 'తెలుగు',
     },
   },
 }
@@ -160,24 +172,52 @@ export function phrase(key: Phrase, lang: Lang): string {
   return WORDS[lang].phrase[key]
 }
 
+// A sentence counts as still being spoken for at most this long, so a lost "ended" event cannot silence warnings.
+const MAX_UTTERANCE_MS = 8000
+let utterance = 0
+let speakingUntil = 0
+let onVoiceFailure: ((lang: Lang) => void) | null = null
+
+// The app decides what happens when a language's voice cannot speak (see App.tsx).
+export function setVoiceFailureHandler(handler: ((lang: Lang) => void) | null) {
+  onVoiceFailure = handler
+}
+
+// Interrupts whatever is being spoken. On Android the interrupted call never settles, so nothing may await speak().
 export async function speak(text: string, lang: Lang): Promise<void> {
+  const id = ++utterance
+  speakingUntil = performance.now() + MAX_UTTERANCE_MS
+  const ended = () => {
+    if (id === utterance) speakingUntil = 0
+  }
   if (Capacitor.isNativePlatform()) {
-    await TextToSpeech.speak({ text, lang: WORDS[lang].tag, rate: 1.1, category: 'ambient' })
+    try {
+      await TextToSpeech.speak({ text, lang: WORDS[lang].tag, rate: 1.1, category: 'ambient' })
+    } catch (err) {
+      // A missing or broken voice, as opposed to an engine that is still starting up or a sentence that was interrupted.
+      const message = err instanceof Error ? err.message : String(err)
+      if (id === utterance && lang !== 'en' && /not supported|Failed to read/.test(message)) onVoiceFailure?.(lang)
+    } finally {
+      ended()
+    }
     return
   }
   // Browser fallback for the Mac and the phone's Chrome; the WebView has no speechSynthesis.
   speechSynthesis.cancel()
   const u = new SpeechSynthesisUtterance(text)
   u.lang = WORDS[lang].tag
+  u.onend = u.onerror = ended
   speechSynthesis.speak(u)
 }
 
 let lastText = ''
 let lastAt = 0
-// Never talk over yourself, never repeat the same sentence within 3 s.
+// Never repeat the same sentence within 3 s, leave 1.5 s between starts, and let a sentence finish
+// unless the new one is urgent (very close, or approaching).
 export function warn(t: Target, lang: Lang, now: number): string | null {
   const text = sentence(t, lang)
   if (now - lastAt < 1500 || (text === lastText && now - lastAt < 3000)) return null
+  if (now < speakingUntil && !(t.distance < 3 || t.approaching)) return null
   lastText = text
   lastAt = now
   void speak(text, lang)
