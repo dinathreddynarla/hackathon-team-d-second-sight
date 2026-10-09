@@ -8,7 +8,7 @@ import { useSos } from './features/safety/useSos'
 import { SettingsDialog } from './features/settings/SettingsDialog'
 import { SetupDialog } from './features/settings/SetupDialog'
 import { useSettings } from './features/settings/settings'
-import { phrase, setVoiceFailureHandler, speak, type Lang } from './features/speech/speech'
+import { announce, setVoiceFailureHandler, type Lang } from './features/speech/speech'
 import { useDetection } from './features/vision/useDetection'
 import { isNative, onVolumeDouble, requestSosPermissions } from './native/setup'
 
@@ -33,25 +33,24 @@ export function App() {
   const lastTapRef = useRef(0)
 
   const start = async () => {
-    if ((await camera.start()) && model !== 'missing') void speak(phrase('ready', lang), lang)
+    if ((await camera.start()) && model !== 'missing') announce('ready', lang)
   }
   const stop = () => {
     camera.stop()
-    void speak(phrase('stopped', lang), lang)
+    announce('stopped', lang)
   }
 
   // Failures are spoken, not only shown: on Start, and when the camera restarts after the app was hidden.
   useEffect(() => {
-    if (camera.state === 'error') void speak(phrase('cameraFailed', langRef.current), langRef.current)
-    else if (camera.state === 'running' && model === 'missing')
-      void speak(phrase('modelMissing', langRef.current), langRef.current)
+    if (camera.state === 'error') announce('cameraFailed', langRef.current)
+    else if (camera.state === 'running' && model === 'missing') announce('modelMissing', langRef.current)
   }, [camera.state, model])
 
   // A voice that cannot speak must not mean silence: fall back to English and say why.
   useEffect(() => {
     setVoiceFailureHandler(() => {
       setVoiceFallback(true)
-      void speak(phrase('voiceMissing', 'en'), 'en')
+      announce('voiceMissing', 'en')
     })
     return () => setVoiceFailureHandler(null)
   }, [])
@@ -60,7 +59,7 @@ export function App() {
   const changeLang = (next: Lang) => {
     setVoiceFallback(false)
     update({ lang: next })
-    void speak(phrase('languageName', next), next)
+    announce('languageName', next)
   }
 
   // Scan once: double tap the camera view, or press volume-up twice (native only).

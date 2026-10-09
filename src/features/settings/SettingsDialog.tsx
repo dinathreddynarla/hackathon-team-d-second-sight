@@ -1,7 +1,7 @@
 import { Button, Dialog, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material'
 
 import { isNative, openVoiceInstall } from '../../native/setup'
-import { phrase, speak, type Lang } from '../speech/speech'
+import { announce, type Lang } from '../speech/speech'
 
 type Props = {
   open: boolean
@@ -58,7 +58,7 @@ export function SettingsDialog({
           <Button
             variant="outlined"
             disabled={!running}
-            onClick={() => void speak(phrase(onCalibrate() ? 'calibrated' : 'noPerson', lang), lang)}
+            onClick={() => announce(onCalibrate() ? 'calibrated' : 'noPerson', lang)}
             sx={{ minHeight: 56 }}
           >
             Calibrate with a person at 5 m (K = {k.toFixed(2)})
@@ -71,7 +71,7 @@ export function SettingsDialog({
           >
             Install offline voices
           </Button>
-          <Button variant="outlined" onClick={() => void speak(phrase('ready', lang), lang)} sx={{ minHeight: 56 }}>
+          <Button variant="outlined" onClick={() => announce('ready', lang)} sx={{ minHeight: 56 }}>
             Test voice
           </Button>
           <TextField
