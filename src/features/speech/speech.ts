@@ -125,7 +125,8 @@ const WORDS: Record<Lang, Words> = {
 
 // Steps when near (a cane user counts steps), whole metres rounded DOWN beyond, so an error is always on the safe side.
 export function rangeOf(metres: number): Range {
-  return metres < 1.5 ? 'oneStep' : metres < 3 ? 'twoSteps' : metres < 5 ? 'close' : metres < 20 ? 'metres' : 'far'
+  // Boundaries are inclusive downward: exactly 3.0 m is "two steps". When in doubt, say nearer.
+  return metres <= 1.5 ? 'oneStep' : metres <= 3 ? 'twoSteps' : metres < 5 ? 'close' : metres < 20 ? 'metres' : 'far'
 }
 export function bucketIndex(metres: number): number {
   const r = rangeOf(metres)
@@ -160,7 +161,7 @@ export function scanSentence(targets: Target[], lang: Lang): string {
   if (targets.length === 0) return w.phrase.nothingAround
   const groups = new Map<string, { t: Target; n: number }>()
   for (const t of [...targets].sort((a, b) => a.distance - b.distance)) {
-    const key = `${t.label}:${t.side}`
+    const key = `${t.label}:${t.side}:${bucketIndex(t.distance)}` // same grouping as the live warning, so counts agree
     const g = groups.get(key)
     if (g) g.n++
     else groups.set(key, { t, n: 1 })

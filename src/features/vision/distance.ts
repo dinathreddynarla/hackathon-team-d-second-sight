@@ -6,6 +6,7 @@ export type Side = 'left' | 'ahead' | 'right'
 export type Target = {
   label: TargetClass
   distance: number
+  count: number
   side: Side
   approaching: boolean
   box: { x: number; y: number; w: number; h: number }
@@ -66,12 +67,15 @@ export function analyseAll(detections: Detection[], frameW: number, frameH: numb
     if (!label || !bb || !(label in REAL_HEIGHT)) continue
     const ratio = bb.height / frameH
     if (ratio < 0.04) continue
-    const distance = (REAL_HEIGHT[label] * k) / ratio
+    // A box filling the frame both ways is a vehicle right at the lens; the formula alone would still say 3 to 4 m.
+    const fillsFrame = ratio >= 0.95 && bb.width >= 0.9 * frameW
+    const distance = fillsFrame ? 1.0 : (REAL_HEIGHT[label] * k) / ratio
     const cx = bb.originX + bb.width / 2
     const side: Side = cx < frameW / 3 ? 'left' : cx > (2 * frameW) / 3 ? 'right' : 'ahead'
     const target: Target = {
       label,
       distance,
+      count: 1,
       side,
       approaching: false,
       box: { x: bb.originX, y: bb.originY, w: bb.width, h: bb.height },
@@ -97,5 +101,14 @@ export function analyse(
     else if (t.approaching !== best.approaching) best = t.approaching ? t : best
     else if (t.distance < best.distance) best = t
   }
+  if (best) {
+    const b = best
+    b.count = all.filter(t => t.label === b.label && t.side === b.side && sameBucket(t.distance, b.distance)).length
+  }
   return best
+}
+
+function sameBucket(a: number, b: number): boolean {
+  const step = (m: number) => (m <= 1.5 ? 0 : m <= 3 ? 1 : m < 5 ? 2 : Math.floor(m))
+  return step(a) === step(b)
 }

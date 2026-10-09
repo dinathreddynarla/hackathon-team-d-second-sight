@@ -15,7 +15,7 @@ const W = 640,
   H = 480
 function box(label, distance, side, score = 0.8) {
   const h = Math.min(H, ((REAL[label] * K) / distance) * H)
-  const w = h * (label === 'person' ? 0.35 : label === 'bus' ? 1.2 : 1.1)
+  const w = Math.min(W, h * (label === 'person' ? 0.35 : label === 'bus' ? 1.2 : 1.1)) // clipped at the frame edge like a real box
   const cx = side === 'left' ? W * 0.17 : side === 'right' ? W * 0.83 : W * 0.5
   return {
     categories: [{ categoryName: label, score }],
