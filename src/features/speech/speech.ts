@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core'
 
 import type { TargetClass } from '../vision/detector'
 import type { Side, Target } from '../vision/distance'
+import type { LightColour } from '../vision/trafficLight'
 import { vibrate } from '../../native/vibrate'
 
 // Languages with a full sentence table. A language appears in the app only when its voice is installed on the phone.
@@ -55,6 +56,8 @@ export type Phrase =
   | 'cameraBlocked'
   | 'tooDark'
   | 'cameraClear'
+  | 'torchOn'
+  | 'alarmOn'
   | 'detectionSlow'
   | 'crowded'
   | 'helpPrompt'
@@ -78,6 +81,8 @@ type Words = {
   extra: Record<ExtraClass, string>
   also: string
   textSays: string
+  // Said after "traffic light": the colour of the lamp that is lit.
+  light: Record<LightColour, string>
   label: Record<TargetClass, string>
   plural: Record<TargetClass, string>
   side: Record<Side, string>
@@ -115,6 +120,7 @@ const WORDS: Record<Lang, Words> = {
     },
     also: 'Also',
     textSays: 'Text says',
+    light: { red: 'red', green: 'green' },
     label: {
       person: 'person',
       car: 'car',
@@ -165,6 +171,8 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'Camera blocked. Clear the lens.',
       tooDark: "Camera can't see. Warnings may be missed.",
       cameraClear: 'Camera clear.',
+      torchOn: 'Dark. Torch on.',
+      alarmOn: 'Alarm on. Tap to stop.',
       detectionSlow: 'Detection is slow. Warnings may be late.',
       crowded: 'Crowd ahead.',
       helpPrompt: 'Asking for help. Tap to cancel.',
@@ -208,6 +216,7 @@ const WORDS: Record<Lang, Words> = {
     },
     also: 'ఇంకా',
     textSays: 'రాసి ఉన్నది',
+    light: { red: 'ఎరుపు', green: 'ఆకుపచ్చ' },
     label: {
       person: 'వ్యక్తి',
       car: 'కారు',
@@ -259,6 +268,8 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'కెమెరాకు అడ్డు ఉంది. లెన్స్ శుభ్రం చేయండి.',
       tooDark: 'కెమెరాకు కనిపించడం లేదు. హెచ్చరికలు తప్పిపోవచ్చు.',
       cameraClear: 'కెమెరా స్పష్టం.',
+      torchOn: 'చీకటిగా ఉంది. టార్చ్ ఆన్ అయింది.',
+      alarmOn: 'అలారం ఆన్. ఆపడానికి నొక్కండి.',
       detectionSlow: 'డిటెక్షన్ నెమ్మదిగా ఉంది. హెచ్చరికలు ఆలస్యం కావచ్చు.',
       crowded: 'ముందు రద్దీ ఉంది.',
       helpPrompt: 'సహాయం అడుగుతోంది. రద్దు చేయడానికి నొక్కండి.',
@@ -302,6 +313,7 @@ const WORDS: Record<Lang, Words> = {
     },
     also: 'साथ में',
     textSays: 'लिखा है',
+    light: { red: 'लाल', green: 'हरी' },
     label: {
       person: 'व्यक्ति',
       car: 'कार',
@@ -352,6 +364,8 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'कैमरा ढका है। लेंस साफ़ करें।',
       tooDark: 'कैमरा देख नहीं पा रहा। चेतावनियाँ छूट सकती हैं।',
       cameraClear: 'कैमरा साफ़।',
+      torchOn: 'अँधेरा है। टॉर्च चालू।',
+      alarmOn: 'अलार्म चालू। रोकने के लिए दबाएँ।',
       helpPrompt: 'मदद माँगी जा रही है। रद्द करने के लिए दबाएँ।',
       stillPrompt: 'आप तीस सेकंड से हिले नहीं। क्या आप ठीक हैं? रद्द करने के लिए स्क्रीन दबाएँ।',
       callOffer: 'अपने संपर्क को कॉल करने के लिए कहीं भी दबाएँ।',
@@ -395,6 +409,7 @@ const WORDS: Record<Lang, Words> = {
     },
     also: 'மேலும்',
     textSays: 'எழுதியிருப்பது',
+    light: { red: 'சிவப்பு', green: 'பச்சை' },
     label: {
       person: 'நபர்',
       car: 'கார்',
@@ -446,6 +461,8 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'கேமரா மறைக்கப்பட்டுள்ளது. லென்ஸைச் சுத்தம் செய்யவும்.',
       tooDark: 'கேமராவுக்குத் தெரியவில்லை. எச்சரிக்கைகள் தவறலாம்.',
       cameraClear: 'கேமரா தெளிவு.',
+      torchOn: 'இருட்டாக உள்ளது. டார்ச் ஆன்.',
+      alarmOn: 'அலாரம் ஆன். நிறுத்த தட்டவும்.',
       helpPrompt: 'உதவி கேட்கப்படுகிறது. ரத்து செய்ய தட்டவும்.',
       stillPrompt: 'நீங்கள் முப்பது வினாடிகளாக அசையவில்லை. நலமா? ரத்து செய்ய திரையைத் தட்டவும்.',
       callOffer: 'உங்கள் தொடர்புக்கு அழைக்க எங்கும் தட்டவும்.',
@@ -489,6 +506,7 @@ const WORDS: Record<Lang, Words> = {
     },
     also: 'ಜೊತೆಗೆ',
     textSays: 'ಬರೆದಿರುವುದು',
+    light: { red: 'ಕೆಂಪು', green: 'ಹಸಿರು' },
     label: {
       person: 'ವ್ಯಕ್ತಿ',
       car: 'ಕಾರು',
@@ -540,6 +558,8 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'ಕ್ಯಾಮೆರಾ ಮುಚ್ಚಿದೆ. ಲೆನ್ಸ್ ಸ್ವಚ್ಛಗೊಳಿಸಿ.',
       tooDark: 'ಕ್ಯಾಮೆರಾಗೆ ಕಾಣುತ್ತಿಲ್ಲ. ಎಚ್ಚರಿಕೆಗಳು ತಪ್ಪಬಹುದು.',
       cameraClear: 'ಕ್ಯಾಮೆರಾ ಸ್ಪಷ್ಟ.',
+      torchOn: 'ಕತ್ತಲಾಗಿದೆ. ಟಾರ್ಚ್ ಆನ್ ಆಗಿದೆ.',
+      alarmOn: 'ಅಲಾರಂ ಆನ್. ನಿಲ್ಲಿಸಲು ಒತ್ತಿ.',
       helpPrompt: 'ಸಹಾಯ ಕೇಳಲಾಗುತ್ತಿದೆ. ರದ್ದುಮಾಡಲು ಒತ್ತಿ.',
       stillPrompt: 'ನೀವು ಮೂವತ್ತು ಸೆಕೆಂಡುಗಳಿಂದ ಅಲುಗಾಡಿಲ್ಲ. ಚೆನ್ನಾಗಿದ್ದೀರಾ? ರದ್ದುಮಾಡಲು ಪರದೆಯನ್ನು ಒತ್ತಿ.',
       callOffer: 'ನಿಮ್ಮ ಸಂಪರ್ಕಕ್ಕೆ ಕರೆ ಮಾಡಲು ಎಲ್ಲಿಯಾದರೂ ಒತ್ತಿ.',
@@ -615,11 +635,24 @@ export function scanSentence(targets: Target[], lang: Lang): string {
   return parts.join('. ')
 }
 
+// "Traffic light, red". The colour only: the app cannot tell a pedestrian signal from one for vehicles, or which road
+// a light belongs to, so it never says whether to cross.
+export function lightSentence(colour: LightColour, lang: Lang): string {
+  const w = WORDS[lang]
+  return `${w.extra['traffic light']}, ${w.light[colour]}`
+}
+
 // "What is around me": the warning objects with where and how far, other things by name, then any readable text.
-export function describeSentence(targets: Target[], extras: ExtraClass[], text: string | null, lang: Lang): string {
+export function describeSentence(
+  targets: Target[],
+  extras: ExtraClass[],
+  text: string | null,
+  lang: Lang,
+  light: LightColour | null = null
+): string {
   const w = WORDS[lang]
   const objects = targets.length ? scanSentence(targets, lang) : ''
-  const names = extras.map(e => w.extra[e]).join(', ')
+  const names = extras.map(e => (e === 'traffic light' && light ? lightSentence(light, lang) : w.extra[e])).join(', ')
   const others = names ? (objects ? `${w.also}: ${names}` : names) : ''
   const reading = text ? `${w.textSays}: ${text}` : ''
   const parts = [objects, others, reading].filter(Boolean)
@@ -665,9 +698,18 @@ export function setVoiceFailureHandler(handler: ((lang: Lang, text: string) => v
   onVoiceFailure = handler
 }
 
+// How fast the voice talks. Many screen-reader users listen well above normal speed, and a sentence that ends sooner
+// is a warning that arrives sooner.
+export const RATES = { slow: 0.8, normal: 1, fast: 1.4 } as const
+export type SpeechRate = keyof typeof RATES
+let rate: number = RATES.normal
+export function setSpeechRate(next: SpeechRate) {
+  rate = RATES[next]
+}
+
 // Generous upper bound on how long a sentence takes to say: words at 2.6 per second plus engine start-up.
 function speakingTimeMs(text: string): number {
-  return (text.split(/\s+/).length / 2.6) * 1000 + 1200
+  return (text.split(/\s+/).length / (2.6 * rate)) * 1000 + 1200
 }
 
 export async function stopSpeaking(): Promise<void> {
@@ -681,7 +723,7 @@ async function speakRaw(text: string, lang: Lang): Promise<void> {
       // Android never settles a sentence that was stopped mid-way. The guard settles it anyway, so nothing that
       // waits on speech (the queue, the SOS countdown) can hang forever.
       await Promise.race([
-        TextToSpeech.speak({ text, lang: WORDS[lang].tag, rate: 1.0, category: 'ambient' }),
+        TextToSpeech.speak({ text, lang: WORDS[lang].tag, rate, category: 'ambient' }),
         new Promise<void>(resolve => window.setTimeout(resolve, speakingTimeMs(text))),
       ])
     } catch (err) {
@@ -695,6 +737,7 @@ async function speakRaw(text: string, lang: Lang): Promise<void> {
   await new Promise<void>(resolve => {
     const u = new SpeechSynthesisUtterance(text)
     u.lang = WORDS[lang].tag
+    u.rate = rate
     const guard = window.setTimeout(resolve, speakingTimeMs(text)) // headless engines never fire onend
     u.onend = u.onerror = () => {
       clearTimeout(guard)
@@ -783,6 +826,29 @@ export function warn(t: Target, lang: Lang, now: number): string | null {
   announced.set(t.label, { side: t.side, bucket, tier, t: now, distance: t.distance })
   const text = sentence(t, lang)
   void speak(text, lang, urgent, `${t.label}:${t.side}`)
-  if (t.distance < 3) vibrate(200)
+  if (t.distance < 3) buzzSide(t.side)
   return text
+}
+
+// The side by touch, for when traffic drowns the voice: one short buzz for left, one long for right, two for
+// straight ahead. Left and right, the pair that must never be mixed up, differ by length, which a cheap motor still
+// conveys when it smears short pulses together; the two of "ahead" are far enough apart to be counted.
+const BUZZ: Record<Side, number[]> = { left: [150], right: [600], ahead: [300, 300] }
+const BUZZ_GAP_MS = 250
+export function buzzSide(side: Side): void {
+  let at = 0
+  for (const ms of BUZZ[side]) {
+    if (at === 0) vibrate(ms)
+    else window.setTimeout(() => vibrate(ms), at)
+    at += ms + BUZZ_GAP_MS
+  }
+}
+
+// Settings: each side is named, then felt, so the three buzzes can be learnt before a walk.
+export async function demoBuzz(lang: Lang): Promise<void> {
+  for (const side of ['left', 'right', 'ahead'] as const) {
+    await speak(WORDS[lang].side[side], lang, true)
+    buzzSide(side)
+    await new Promise(resolve => window.setTimeout(resolve, 1200))
+  }
 }

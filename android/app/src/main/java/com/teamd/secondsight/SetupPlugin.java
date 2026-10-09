@@ -1,10 +1,18 @@
 package com.teamd.secondsight;
 
 import android.Manifest;
+import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.AudioManager;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.util.Base64;
 import android.view.Window;
@@ -14,6 +22,7 @@ import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 import android.telephony.SmsManager;
+import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
@@ -22,8 +31,12 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.concurrent.atomic.AtomicInteger;
 
-// Two native calls the web page cannot make itself: open Android's "Install voice data" screen, and send an SOS SMS silently.
+// Native calls the web page cannot make itself: open Android's "Install voice data" screen, send an SOS SMS silently
+// and learn whether it left the phone, and the rest below.
 @CapacitorPlugin(name = "Setup", permissions = { @Permission(alias = "sms", strings = { Manifest.permission.SEND_SMS }) })
 public class SetupPlugin extends Plugin {
 
@@ -54,6 +67,14 @@ public class SetupPlugin extends Plugin {
         else call.reject("SMS permission denied");
     }
 
+    private static final String SMS_SENT = "com.teamd.secondsight.SMS_SENT";
+    // A message the network has not taken in this long is reported as not sent, so the calls are not kept waiting.
+    private static final long SMS_VERDICT_MS = 15000;
+    private static final AtomicInteger smsSerial = new AtomicInteger();
+
+    // Handing a message to Android is not sending it: in flight mode or without signal it never leaves. The call
+    // is answered with the radio's own verdict: resolved once every part of the message has gone, rejected when a
+    // part fails or nothing is heard in time.
     private void send(PluginCall call) {
         String to = call.getString("to");
         String text = call.getString("text");
@@ -61,10 +82,86 @@ public class SetupPlugin extends Plugin {
             call.reject("to and text are required");
             return;
         }
+        Context context = getContext();
+        SmsManager sms = SmsManager.getDefault();
+        ArrayList<String> parts = sms.divideMessage(text);
+        // Its own action per message, so one message's verdict is never taken for another's.
+        String action = SMS_SENT + "." + smsSerial.incrementAndGet();
+        SentWatch watch = new SentWatch(call, parts.size());
+        ContextCompat.registerReceiver(context, watch, new IntentFilter(action), ContextCompat.RECEIVER_NOT_EXPORTED);
+        PendingIntent sent = PendingIntent.getBroadcast(
+            context,
+            0,
+            new Intent(action).setPackage(context.getPackageName()),
+            PendingIntent.FLAG_IMMUTABLE
+        );
+        watch.handler.postDelayed(watch, SMS_VERDICT_MS);
         try {
-            SmsManager.getDefault().sendTextMessage(to, null, text, null, null);
+            if (parts.size() <= 1) sms.sendTextMessage(to, null, text, sent, null);
+            else sms.sendMultipartTextMessage(to, null, parts, new ArrayList<>(Collections.nCopies(parts.size(), sent)), null);
+        } catch (Exception e) {
+            watch.finish(false);
+        }
+    }
+
+    // Waits for the "sent" broadcast of each part of one message, or for the time to run out.
+    private final class SentWatch extends BroadcastReceiver implements Runnable {
+
+        final Handler handler = new Handler(Looper.getMainLooper());
+        private final PluginCall call;
+        private int partsLeft;
+        private boolean done;
+
+        SentWatch(PluginCall call, int parts) {
+            this.call = call;
+            this.partsLeft = Math.max(1, parts);
+        }
+
+        @Override
+        public synchronized void onReceive(Context context, Intent intent) {
+            if (getResultCode() != Activity.RESULT_OK) finish(false);
+            else if (--partsLeft <= 0) finish(true);
+        }
+
+        // No verdict in time.
+        @Override
+        public void run() {
+            finish(false);
+        }
+
+        synchronized void finish(boolean sent) {
+            if (done) return;
+            done = true;
+            handler.removeCallbacks(this);
+            try {
+                getContext().unregisterReceiver(this);
+            } catch (IllegalArgumentException e) {
+                /* already unregistered */
+            }
+            if (sent) call.resolve();
+            else call.reject("SMS not sent");
+        }
+    }
+
+    // The alarm for people nearby plays as media, and the media volume may have been left low or at zero: full
+    // while the alarm sounds, then back to where it was.
+    private int volumeBeforeAlarm = -1;
+
+    @PluginMethod
+    public synchronized void alarmVolume(PluginCall call) {
+        boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+        AudioManager audio = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+        try {
+            if (on && volumeBeforeAlarm < 0) {
+                volumeBeforeAlarm = audio.getStreamVolume(AudioManager.STREAM_MUSIC);
+                audio.setStreamVolume(AudioManager.STREAM_MUSIC, audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC), 0);
+            } else if (!on && volumeBeforeAlarm >= 0) {
+                audio.setStreamVolume(AudioManager.STREAM_MUSIC, volumeBeforeAlarm, 0);
+                volumeBeforeAlarm = -1;
+            }
             call.resolve();
         } catch (Exception e) {
+            // Do Not Disturb can refuse a volume change.
             call.reject(e.getMessage());
         }
     }

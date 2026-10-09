@@ -2,9 +2,10 @@ import { Geolocation } from '@capacitor/geolocation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { canCall, placeCall } from '../../native/calls'
-import { sendSms } from '../../native/setup'
+import { sendSmsToAll } from '../../native/setup'
 import { contactsOf } from '../settings/settings'
-import { announce, phrase, speak, type Lang, type Phrase } from '../speech/speech'
+import { announce, isSpeaking, phrase, speak, type Lang, type Phrase } from '../speech/speech'
+import { startSiren, stopSiren } from './siren'
 import { vibrate } from '../../native/vibrate'
 
 export type SosState = 'idle' | 'countdown' | 'sending' | 'calling' | 'answered' | 'noAnswer' | 'failed'
@@ -13,6 +14,7 @@ export type SosState = 'idle' | 'countdown' | 'sending' | 'calling' | 'answered'
 export type SosReason = 'fall' | 'lyingStill' | 'manual'
 const COUNTDOWN_S: Record<SosReason, number> = { fall: 15, lyingStill: 30, manual: 10 }
 const RESULT_SHOWN_MS = 60000 // the result screen closes itself, so the main screen is not left covered
+const ALARM_MS = 180000 // … later while the alarm is sounding, which stops when the screen closes
 const PROMPT = { fall: 'sosPrompt', lyingStill: 'stillPrompt', manual: 'helpPrompt' } as const
 const MESSAGE: Record<SosReason, string> = {
   fall: 'Second Sight: possible fall detected. I may need help.',
@@ -27,8 +29,8 @@ const CALLING: Phrase[] = ['calling1', 'calling2', 'calling3']
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 // Speak, count down with vibration pulses, then SMS every saved contact with a maps link, then phone them in order
-// until one answers.
-export function useSos(lang: Lang, sosNumbers: string[]) {
+// until one answers. If nobody could be reached, sound an alarm for the people nearby (`siren`: the setting).
+export function useSos(lang: Lang, sosNumbers: string[], siren: boolean) {
   const [state, setState] = useState<SosState>('idle')
   const [reason, setReason] = useState<SosReason>('fall')
   const [secondsLeft, setSecondsLeft] = useState(COUNTDOWN_S.fall)
@@ -79,13 +81,13 @@ export function useSos(lang: Lang, sosNumbers: string[]) {
       /* no fix: send without it */
     }
     if (!live()) return
-    // Everyone gets the message first, so whoever answers the call already knows what happened and where.
-    let sent = false
-    for (const to of list) {
-      sent = (await sendSms(to, `${MESSAGE[why]} ${where}`)) || sent
-      // Cancelled part-way: the text already handed to the phone has gone, the rest are not sent.
-      if (!live()) return
-    }
+    // Everyone gets the message first, so whoever answers the call already knows what happened and where. All are
+    // handed to the phone together, and each is counted only once the network has taken it: the wait is one
+    // message long, not three, and "sent" is not said of a message that never left.
+    const results = await sendSmsToAll(list, `${MESSAGE[why]} ${where}`)
+    // Cancelled meanwhile: the messages have gone, nobody is called.
+    if (!live()) return
+    const sent = results.some(Boolean)
     setMessaged(sent)
     // The message is out (or has failed), so the screen moves on to the calls before that is spoken: "tap to
     // cancel, nobody will be messaged" must not stay up a moment longer than it is true.
@@ -184,11 +186,46 @@ export function useSos(lang: Lang, sosNumbers: string[]) {
     []
   )
 
+  // Nobody could be reached by phone, so the phone calls out to whoever is near. The result ("Nobody answered.") is
+  // heard out first, then what the noise is and how to stop it, then the alarm. Tapping the screen, asking for help
+  // again, or the screen closing by itself ends it.
+  const [alarm, setAlarm] = useState(false)
+  const unreached = state === 'noAnswer' || state === 'failed'
+  useEffect(() => {
+    if (!unreached || !siren) return
+    let on = true
+    const id = window.setInterval(() => {
+      if (isSpeaking()) return
+      clearInterval(id)
+      void speak(phrase('alarmOn', langRef.current), langRef.current, true).then(() => {
+        if (on && startSiren()) setAlarm(true)
+      })
+    }, 300)
+    return () => {
+      on = false
+      clearInterval(id)
+      stopSiren()
+      setAlarm(false)
+    }
+  }, [unreached, siren])
+
   useEffect(() => {
     if (state !== 'answered' && state !== 'noAnswer' && state !== 'failed') return
-    const id = window.setTimeout(() => setState('idle'), RESULT_SHOWN_MS)
+    const shown = siren && state !== 'answered' ? ALARM_MS : RESULT_SHOWN_MS
+    const id = window.setTimeout(() => setState('idle'), shown)
     return () => clearTimeout(id)
-  }, [state])
+  }, [state, siren])
 
-  return { state, reason, secondsLeft, contact, total: contacts.length, messaged, start, cancel }
+  return {
+    state,
+    reason,
+    secondsLeft,
+    contact,
+    total: contacts.length,
+    messaged,
+    alarm,
+    alarmDue: unreached && siren,
+    start,
+    cancel,
+  }
 }

@@ -61,12 +61,17 @@ makes single numbers dishonest.
 
 - Detects people, cars, motorcycles, bicycles, buses, trucks, dogs and cows on the phone, no internet
 - Reads Indian road signs while walking (37 types: stop, no entry, speed limits 20 to 80, school ahead, pedestrian crossing, speed breaker, give way, …): "Sign: stop", once per sign, never over a warning. Left/right sign pairs are spoken without the side because the model cannot tell them apart
-- Speaks distance and direction, warns when something approaches, vibrates under 3 m
+- Speaks distance and direction, warns when something approaches, and within two steps buzzes the side: one short buzz for left, one long for right, two for straight ahead (Settings → Feel the buzzes plays all three)
+- Says when a traffic light in view is red: "traffic light, red", once, and again each time it comes back to red. Green is given only when asked for (Describe: "traffic light, green"): left as the last word after the light had changed, it would be heard as leave to walk. The colour only, never whether to cross: the app cannot tell a pedestrian signal from one for vehicles, or which road a light belongs to. Amber is not said
+- Voice speed: slow, normal or fast (Settings), heard at once when changed
 - Describe what is around: double-tap the view, press volume-up twice, or use the volume-key shortcut while watching. Speaks the warning objects with where and how far, other recognisable things by name (chair, bench, traffic light, stop sign, …), and any printed English text in view (read on the phone, offline)
 - Speaks English, Telugu, Hindi, Tamil and Kannada; the app offers only the languages whose voice is installed on the phone
 - Fall detection, two rules: an impact then stillness (15 s to cancel), or a collapse then 30 s lying still (30 s to cancel); then an SOS SMS with a maps link to up to three emergency contacts, then phone calls to them in order until one answers
 - **Open and start without finding anything:** assign Second Sight to Android's accessibility shortcut, then hold both volume keys for 3 s (on vivo/iQOO phones: once the phone is unlocked). The camera starts by itself
 - Ask for help on purpose: hold volume-down for 2 s, or press Help on the screen (10 s to cancel)
+- "Help message sent" is said only when Android reports that the message left the phone; with no signal or in flight mode it says "Could not send the help message" within 15 s and goes on to the calls
+- If nobody answers, the calls cannot be placed, or no contact is saved, the phone says "Alarm on. Tap to stop." and sounds a loud alarm for people nearby (at full media volume, for up to 3 minutes; warnings stay quiet under it; a tap stops it; can be switched off in Settings)
+- In the dark the phone's torch comes on by itself ("Dark. Torch on."), so the camera can see a few metres and drivers can see the user. It stays on until Stop. If it is only lighting a covered lens it goes out again and "Camera blocked. Clear the lens." is said. Can be switched off in Settings
 - Spoken status: battery at 20% and 10% with the real level, "Camera blocked. Clear the lens.", "Camera can't see. Warnings may be missed." (too dark, or a washed-out picture: heavy rain, smoke, fog), "Detection is slow. Warnings may be late."
 - "Crowd ahead." when four or more people stay in view
 - Screen stays on and dims to 5% while watching (saves battery); a quiet street drops detection from 10 to about 3 checks a second
@@ -114,6 +119,8 @@ src/
   components/FallAlert.tsx        full-screen alert: countdown, message, calls; the whole screen cancels or stops
   ui/                             bubble controls, icons, page pieces, English and Telugu labels, Back-to-close
   features/camera/useCamera.ts    back camera, releases on hide, restarts on return
+  features/camera/torch.ts        the flashlight, through the open camera
+  features/vision/trafficLight.ts which lamp of a traffic light is lit, and when that is worth saying
   features/vision/detector.ts     MediaPipe setup, class allowlist, CPU/GPU choice
   features/vision/distance.ts     height table, K, frame thirds, approach rule, nearest target
   features/vision/useDetection.ts 100 ms loop, box overlay, scan-once, calibration
@@ -122,13 +129,14 @@ src/
   features/safety/fall.ts         accelerometer fall rule
   features/safety/useSos.ts       countdown, GPS, SMS to every contact, then calls them in turn
   features/safety/useSceneAlerts.ts  crowd ahead, detection slow: said in a gap, never over a warning
+  features/safety/siren.ts        the alarm for people nearby when no contact could be reached
   native/setup.ts                 bridge to the Java plugin (voice install screen, SMS, volume key event)
   native/calls.ts                 bridge to the calling plugin; a stand-in call for demos and checks
 public/models/                    efficientdet_lite0.tflite
 public/vendor/wasm/               MediaPipe runtime (copied by `pnpm vendor`, git-ignored)
 android/app/src/main/java/com/teamd/secondsight/
   MainActivity.java               keep screen on, volume-up double press
-  SetupPlugin.java                INSTALL_TTS_DATA intent, SmsManager
+  SetupPlugin.java                INSTALL_TTS_DATA intent, SmsManager with its "sent" verdict, alarm volume
   EmergencyCallPlugin.java        places one call, waits for it to end, reads the call log to see if it was answered
 android/app/src/debug/AndroidManifest.xml   INTERNET only for debug builds (live reload)
 docs/STATUS.md                    current state, live-debug recipe, pending phone tests
@@ -159,12 +167,19 @@ Branches and merges: every change goes through a pull request; only the reposito
 ## Known gaps and next steps
 
 - Stairs, poles, potholes, open drains: not in the model. A drop-off heuristic is on the add-on list.
-- Night: detection range halves. A low-light warning is on the add-on list.
+- Night: detection range halves. The torch helps for a few metres only. When it comes on, and when it decides the
+  lens is covered, rest on brightness thresholds that have not been tried on a phone at night.
+- Traffic-light colour is read from the box the detector draws, with colour thresholds that have not been tuned on a
+  real junction. The detector misses small, distant lights; a red tail light or signboard inside the box could be
+  read as a red light; with several lights in view the largest is read, which may be for another road.
+- The torch, the buzz patterns, the alarm's loudness and the voice speed on Android's own voices have not been tried
+  on a phone.
 - The camera faces forward only; a vehicle from behind is not seen. Stated in the demo.
 - Fall thresholds are untuned; the SMS path needs a SIM test. The rule assumes the phone is worn upright in portrait,
   and someone left slumped rather than lying down is missed.
-- The SOS says "Help message sent" without confirmation that the SMS left the phone. Confirming delivery needs a
-  sent-result receiver in `SetupPlugin.java`.
+- "Help message sent" now waits for Android's "sent" report (the network took the message). That is not proof the
+  contact's phone received it, and a message the network takes after more than 15 s is spoken as not sent. Unproven
+  until run on a phone with a SIM.
 - Emergency calls have not been run on a phone. The sequence is checked in a browser with the calls simulated, and
   the APK compiles; a real call needs an Android phone with a SIM.
 - A call counts as answered when the call log shows a duration above zero. A voicemail that picks up looks the same,

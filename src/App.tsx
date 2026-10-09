@@ -13,7 +13,15 @@ import { useSos } from './features/safety/useSos'
 import { SettingsDialog } from './features/settings/SettingsDialog'
 import { SetupDialog } from './features/settings/SetupDialog'
 import { contactsOf, MAX_CONTACTS, useSettings } from './features/settings/settings'
-import { announce, installedLangs, phrase, setVoiceFailureHandler, speak, type Lang } from './features/speech/speech'
+import {
+  announce,
+  installedLangs,
+  phrase,
+  setSpeechRate,
+  setVoiceFailureHandler,
+  speak,
+  type Lang,
+} from './features/speech/speech'
 import { useSigns } from './features/signs/useSigns'
 import { useDetection } from './features/vision/useDetection'
 import { requestAlertPermissions } from './native/calls'
@@ -41,9 +49,11 @@ export function App() {
   const camera = useCamera()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const running = camera.state === 'running'
-  const sos = useSos(lang, settings.sosNumbers)
+  const sos = useSos(lang, settings.sosNumbers, settings.siren)
   // Detection keeps quiet while the alert is asking, sending or calling, and resumes once the result is showing.
-  const alertBusy = sos.state === 'countdown' || sos.state === 'sending' || sos.state === 'calling'
+  // Unless the alarm for people nearby is about to sound or sounding: nothing would be heard under it, and a warning
+  // must not cut off the sentence that says how to stop it.
+  const alertBusy = sos.state === 'countdown' || sos.state === 'sending' || sos.state === 'calling' || sos.alarmDue
   const detection = useDetection(camera.videoRef, canvasRef, running && !alertBusy, lang)
   const { model } = detection
   useSigns(camera.videoRef, running && !alertBusy, lang)
@@ -78,6 +88,9 @@ export function App() {
     })
     return () => setVoiceFailureHandler(null)
   }, [])
+
+  // The saved voice speed, from the first sentence on.
+  useEffect(() => setSpeechRate(settings.rate), [settings.rate])
 
   // Languages whose voice is installed on this phone (rechecked when returning from Android's voice download screen).
   const [langs, setLangs] = useState<Lang[]>(['en', settings.lang])
@@ -146,7 +159,7 @@ export function App() {
   // What the user cannot see: a low battery, a covered lens, a scene too dark or too washed out to read. The battery
   // waits while the alert is up, so it cannot talk over "Are you okay?" or the calls.
   useBatteryAlerts(langRef, sos.state !== 'idle')
-  useCameraViewAlerts(camera.videoRef, running && !alertBusy, langRef)
+  useCameraViewAlerts(camera.videoRef, running && !alertBusy, langRef, settings.torch)
   // And what the app can tell about its own work: a crowd in view, and detection that has fallen behind.
   const watching = running && !alertBusy && model === 'ready'
   useCrowdAlerts(detection.people, detection.scannedAt, watching, langRef)
@@ -345,6 +358,17 @@ export function App() {
         langs={langs}
         dim={settings.dim}
         onDim={dim => update({ dim })}
+        rate={settings.rate}
+        onRate={rate => {
+          // Heard at once at the new speed: set before the sentence, not when the screen next draws.
+          setSpeechRate(rate)
+          update({ rate })
+          announce('ready', lang)
+        }}
+        torch={settings.torch}
+        onTorch={torch => update({ torch })}
+        siren={settings.siren}
+        onSiren={siren => update({ siren })}
         sosNumbers={settings.sosNumbers}
         k={detection.k}
         fps={detection.fps}
@@ -379,6 +403,7 @@ export function App() {
         contact={sos.contact}
         total={sos.total}
         messaged={sos.messaged}
+        alarm={sos.alarm}
         lang={lang}
         onCancel={sos.cancel}
       />

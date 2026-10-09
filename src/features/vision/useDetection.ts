@@ -5,6 +5,8 @@ import { readText } from '../../native/setup'
 import {
   describeSentence,
   EXTRA_CLASSES,
+  isSpeaking,
+  lightSentence,
   pauseWarnings,
   setCurrentTarget,
   speak,
@@ -14,6 +16,7 @@ import {
 } from '../speech/speech'
 import { createDetector, preferredDelegate } from './detector'
 import { analyse, analyseAll, calibrateK, loadK, saveK, type Side, type Target } from './distance'
+import { createLightWatch, lightColour, type LightColour } from './trafficLight'
 
 export type ModelState = 'loading' | 'ready' | 'missing'
 
@@ -23,6 +26,9 @@ export type ModelState = 'loading' | 'ready' | 'missing'
 const FAST_MS = 100
 const IDLE_MS = 300
 const IDLE_AFTER_MS = 10000
+// A traffic light's colour is read a few times a second: looks further apart are more independent of each other.
+const LIGHT_EVERY_MS = 250
+const LIGHT_FRESH_MS = 1500
 export function useDetection(
   videoRef: RefObject<HTMLVideoElement | null>,
   canvasRef: RefObject<HTMLCanvasElement | null>,
@@ -47,6 +53,8 @@ export function useDetection(
   const peopleRef = useRef(0)
   const scannedAtRef = useRef(-Infinity)
   const showUntilRef = useRef(0)
+  // The colour of the traffic light in view, once three looks have agreed on it, for "what is around me".
+  const lightRef = useRef<{ colour: LightColour | null; at: number }>({ colour: null, at: -Infinity })
 
   useEffect(() => {
     let cancelled = false
@@ -74,6 +82,8 @@ export function useDetection(
     let lastTs = 0
     let lastSeenAt = performance.now()
     let timer = 0
+    let lightLookAt = 0
+    const lightWatch = createLightWatch()
     const loop = () => {
       tick()
       timer = window.setTimeout(loop, performance.now() - lastSeenAt > IDLE_AFTER_MS ? IDLE_MS : FAST_MS)
@@ -114,6 +124,30 @@ export function useDetection(
         setLastSaid('')
         setLane(null)
         shownRef.current = false
+      }
+      // A traffic light in view. Red is said, once sure of it and again each time the light comes back to red, in a
+      // gap in the speech only, after the warning above has had its turn. Green is noted in silence and given only
+      // when asked for: a "green" left as the last word after the light has changed would be heard as leave to walk.
+      const light = now - lightLookAt >= LIGHT_EVERY_MS ? nearestLight(detections) : null
+      if (light) {
+        lightLookAt = now
+        const colour = lightColour(boxPixels(video, light))
+        if (window.__ss) window.__ss.light = colour
+        const due = lightWatch.look(colour, now)
+        lightRef.current = { colour: lightWatch.sure(now), at: now }
+        if (due === 'green') lightWatch.spoken(due)
+        else if (due && !isSpeaking()) {
+          lightWatch.spoken(due)
+          const text = lightSentence(due, langRef.current)
+          // Cut off by a warning, it is still red and still worth knowing: said again in the next gap.
+          void speak(text, langRef.current).then(heard => {
+            if (!heard) lightWatch.unheard(due)
+          })
+          setLastSaid(text)
+          setLane(null)
+          shownRef.current = true
+          showUntilRef.current = now + 4000
+        }
       }
       frames++
       if (now - fpsAt > 1000) {
@@ -157,9 +191,10 @@ export function useDetection(
       ),
     ]
     scannedAtRef.current = performance.now()
+    const light = scannedAtRef.current - lightRef.current.at < LIGHT_FRESH_MS ? lightRef.current.colour : null
     pauseWarnings(true)
     const text = await readText(frameJpeg(video))
-    const sentence = describeSentence(targets, extras, text, langRef.current)
+    const sentence = describeSentence(targets, extras, text, langRef.current, light)
     void speak(sentence, langRef.current, true).finally(() => pauseWarnings(false))
     setLastSaid(sentence)
     setLane(null)
@@ -180,6 +215,35 @@ export function useDetection(
     scan,
     k: kRef.current,
   }
+}
+
+// The largest traffic light the detector is sure of: the nearest one, as far as a picture can tell.
+type Box = NonNullable<Detection['boundingBox']>
+function nearestLight(detections: Detection[]): Box | null {
+  let best: Box | null = null
+  for (const d of detections) {
+    const c = d.categories[0]
+    const box = d.boundingBox
+    if (!box || c?.categoryName !== 'traffic light' || c.score < 0.5) continue
+    if (!best || box.width * box.height > best.width * best.height) best = box
+  }
+  return best
+}
+
+// The pixels inside a box of the camera frame, shrunk to a thumbnail: enough to tell which lamp is lit.
+const LIGHT_W = 24
+const LIGHT_H = 48
+let lightCanvas: HTMLCanvasElement | null = null
+function boxPixels(video: HTMLVideoElement, box: Box): Uint8ClampedArray {
+  if (!lightCanvas) {
+    lightCanvas = document.createElement('canvas')
+    lightCanvas.width = LIGHT_W
+    lightCanvas.height = LIGHT_H
+  }
+  const g = lightCanvas.getContext('2d', { willReadFrequently: true })
+  if (!g) return new Uint8ClampedArray(0)
+  g.drawImage(video, box.originX, box.originY, box.width, box.height, 0, 0, LIGHT_W, LIGHT_H)
+  return g.getImageData(0, 0, LIGHT_W, LIGHT_H).data
 }
 
 // The current camera frame as base64 JPEG (no data: prefix), for text reading.

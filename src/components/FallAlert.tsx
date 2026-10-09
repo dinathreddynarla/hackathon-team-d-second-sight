@@ -12,6 +12,8 @@ type Props = {
   contact: number
   total: number
   messaged: boolean | null
+  // The alarm for people nearby is sounding: the screen then stops it.
+  alarm: boolean
   lang: Lang
   onCancel: () => void
 }
@@ -22,7 +24,7 @@ const CANCEL_HEIGHT = 72
 // screen is one button and takes focus, so one tap, or a screen reader's double-tap anywhere, cancels the
 // countdown, stops the message or the calling, or dismisses the result. During a call the phone's own call screen
 // is in front.
-export function FallAlert({ state, reason, secondsLeft, contact, total, messaged, lang, onCancel }: Props) {
+export function FallAlert({ state, reason, secondsLeft, contact, total, messaged, alarm, lang, onCancel }: Props) {
   const s = UI[lang].alert
   const counting = state === 'countdown'
   const title = counting
@@ -48,7 +50,9 @@ export function FallAlert({ state, reason, secondsLeft, contact, total, messaged
       ? s.tapToCancel
       : state === 'calling'
         ? s.stopCalling
-        : s.back
+        : alarm
+          ? s.stopAlarm
+          : s.back
   // The spoken name starts with the words on the button, or voice control cannot find it.
   const actionName = asked
     ? s.cancelLabel
@@ -57,7 +61,7 @@ export function FallAlert({ state, reason, secondsLeft, contact, total, messaged
       : state === 'sending'
         ? s.cancelSendingLabel
         : action
-  const note = state === 'calling' ? s.callingHint : state === 'failed' ? s.failedHint : null
+  const note = state === 'calling' ? s.callingHint : state === 'failed' ? s.failedHint : alarm ? s.alarmHint : null
   // Once the calls have started, whether the message went out is still worth knowing.
   const message = counting || state === 'sending' || messaged === null ? null : messaged ? s.sent : s.notSent
 
@@ -86,6 +90,7 @@ export function FallAlert({ state, reason, secondsLeft, contact, total, messaged
         data-reason={reason}
         data-contact={state === 'calling' ? contact : undefined}
         data-messaged={messaged === null ? undefined : String(messaged)}
+        data-alarm={alarm ? 'true' : undefined}
         aria-label={actionName}
         onClick={onCancel}
         sx={{

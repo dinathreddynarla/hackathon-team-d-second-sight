@@ -6,13 +6,16 @@ import { color } from '../../theme'
 import { Group, PageHeader, Row, Segmented } from '../../ui/page'
 import { LANGUAGE_NAME, UI } from '../../ui/strings'
 import { useBackToClose } from '../../ui/useBackToClose'
-import { announce, type Lang } from '../speech/speech'
+import { announce, demoBuzz, RATES, type Lang, type SpeechRate } from '../speech/speech'
 
 type Props = {
   open: boolean
   lang: Lang
   langs: Lang[]
   dim: boolean
+  rate: SpeechRate
+  torch: boolean
+  siren: boolean
   sosNumbers: string[]
   k: number
   fps: number
@@ -20,6 +23,9 @@ type Props = {
   onClose: () => void
   onLang: (lang: Lang) => void
   onDim: (dim: boolean) => void
+  onRate: (rate: SpeechRate) => void
+  onTorch: (torch: boolean) => void
+  onSiren: (siren: boolean) => void
   onSosNumber: (slot: number, number: string) => void
   onCalibrate: () => boolean
   onRunSetup: () => void
@@ -33,6 +39,9 @@ export function SettingsDialog({
   lang,
   langs,
   dim,
+  rate,
+  torch,
+  siren,
   sosNumbers,
   k,
   fps,
@@ -40,6 +49,9 @@ export function SettingsDialog({
   onClose,
   onLang,
   onDim,
+  onRate,
+  onTorch,
+  onSiren,
   onSosNumber,
   onCalibrate,
   onRunSetup,
@@ -89,6 +101,18 @@ export function SettingsDialog({
               options={langs.map(l => ({ value: l, label: LANGUAGE_NAME[l], testId: `settings-lang-${l}` }))}
             />
           </Box>
+          <Box sx={{ p: 1.5 }}>
+            <Segmented
+              label={s.speed}
+              value={rate}
+              onChange={onRate}
+              options={(Object.keys(RATES) as SpeechRate[]).map(r => ({
+                value: r,
+                label: s.speeds[r],
+                testId: `speed-${r}`,
+              }))}
+            />
+          </Box>
           <Row label={s.testVoice} hint={s.testVoiceHint} testId="test-voice" onClick={() => announce('ready', lang)} />
           <Row
             label={s.installVoices}
@@ -108,6 +132,7 @@ export function SettingsDialog({
             testId="calibrate"
             onClick={() => announce(onCalibrate() ? 'calibrated' : 'noPerson', lang)}
           />
+          <Row label={s.buzz} hint={s.buzzHint} testId="buzz-demo" onClick={() => void demoBuzz(lang)} />
         </Group>
 
         <Group title={s.emergencyGroup}>
@@ -128,6 +153,13 @@ export function SettingsDialog({
               />
             ))}
           </Stack>
+          <Row
+            label={s.siren}
+            hint={siren ? s.sirenOn : s.sirenOff}
+            trailing={siren ? '✓' : ''}
+            testId="siren"
+            onClick={() => onSiren(!siren)}
+          />
           <Row label={s.testFall} hint={s.testFallHint} alarm testId="test-fall" onClick={onTestFall} />
         </Group>
 
@@ -138,6 +170,13 @@ export function SettingsDialog({
             trailing={dim ? '✓' : ''}
             testId="dim"
             onClick={() => onDim(!dim)}
+          />
+          <Row
+            label={s.torch}
+            hint={torch ? s.torchOn : s.torchOff}
+            trailing={torch ? '✓' : ''}
+            testId="torch"
+            onClick={() => onTorch(!torch)}
           />
         </Group>
 
