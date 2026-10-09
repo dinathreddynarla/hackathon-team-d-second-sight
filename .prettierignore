@@ -1,0 +1,4 @@
+android
+dist
+public/vendor
+pnpm-lock.yaml
