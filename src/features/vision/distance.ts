@@ -130,7 +130,11 @@ export function analyse(
   k: number,
   now: number
 ): Target | null {
-  const all = analyseAll(detections, frameW, frameH, k).filter(t => persisted(`${t.label}:${t.side}`, now))
+  // Confirmed per kind of object, once per frame: a car moving from "left" to "ahead" is the same car and must not
+  // need three fresh frames on its new side (in that gap a far, standing person would be announced instead).
+  const seenKinds = new Set(analyseAll(detections, frameW, frameH, k).map(t => t.label))
+  const confirmed = new Set([...seenKinds].filter(label => persisted(label, now)))
+  const all = analyseAll(detections, frameW, frameH, k).filter(t => confirmed.has(t.label))
   for (const t of all) t.approaching = isApproaching(`${t.label}:${t.side}`, t.distance, now)
   // Nearest wins; a moving object overrides only while it is within 10 m.
   let best: Target | null = null

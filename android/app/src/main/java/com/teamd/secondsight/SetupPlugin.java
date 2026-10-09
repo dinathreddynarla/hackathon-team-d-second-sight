@@ -2,7 +2,17 @@ package com.teamd.secondsight;
 
 import android.Manifest;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.provider.Settings;
+import android.util.Base64;
+import android.view.Window;
+import android.view.WindowManager;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 import android.telephony.SmsManager;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
@@ -91,5 +101,65 @@ public class SetupPlugin extends Plugin {
         JSObject result = new JSObject();
         result.put("autostart", MainActivity.consumeAutostart());
         call.resolve(result);
+    }
+
+    // While watching: the screen must not time out (Android would pause the camera), and nobody needs it bright.
+    // Dimming to 5% saves most of the screen's power; off again, the system brightness and timeout come back.
+    @PluginMethod
+    public void setWatching(PluginCall call) {
+        boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+        boolean dim = Boolean.TRUE.equals(call.getBoolean("dim", true));
+        getActivity().runOnUiThread(() -> {
+            Window window = getActivity().getWindow();
+            WindowManager.LayoutParams attrs = window.getAttributes();
+            if (on) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            attrs.screenBrightness = on && dim ? 0.05f : WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE;
+            window.setAttributes(attrs);
+            call.resolve();
+        });
+    }
+
+    // Apps cannot turn on the accessibility shortcut themselves; this opens the page where the user (or a helper) can.
+    @PluginMethod
+    public void openAccessibilitySettings(PluginCall call) {
+        Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            getContext().startActivity(intent);
+            call.resolve();
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
+    }
+
+    // Reads printed text in a camera frame with Google's on-device recogniser (bundled in the APK, no internet).
+    // Latin script only: English signs, numbers, bus boards in English.
+    @PluginMethod
+    public void readText(PluginCall call) {
+        String data = call.getString("image");
+        if (data == null) {
+            call.reject("image is required");
+            return;
+        }
+        byte[] bytes = Base64.decode(data, Base64.DEFAULT);
+        Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+        if (bitmap == null) {
+            call.reject("not an image");
+            return;
+        }
+        TextRecognizer recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+        recognizer
+            .process(InputImage.fromBitmap(bitmap, 0))
+            .addOnSuccessListener(text -> {
+                JSObject result = new JSObject();
+                result.put("text", text.getText());
+                call.resolve(result);
+                recognizer.close();
+            })
+            .addOnFailureListener(e -> {
+                call.reject(e.getMessage());
+                recognizer.close();
+            });
     }
 }

@@ -138,8 +138,8 @@ export function Segmented<T extends string>({ label, value, options, onChange }:
       aria-label={label}
       sx={{
         display: 'grid',
-        gridAutoFlow: 'column',
-        gridAutoColumns: '1fr',
+        // Wraps to a second row when there are more choices than fit (five languages on a phone).
+        gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))',
         gap: '6px',
         p: '6px',
         borderRadius: radius.pill,
