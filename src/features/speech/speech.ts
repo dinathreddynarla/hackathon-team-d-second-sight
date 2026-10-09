@@ -595,6 +595,8 @@ export function sentence(t: Target, lang: Lang): string {
   const noun = t.count > 1 ? `${t.count} ${w.plural[t.label]}` : w.label[t.label]
   // "move left" / "move right" / "stop" when something blocks the way ahead (distance.ts, obstacles).
   const guide = t.guidance ? `, ${w.guide[t.guidance]}` : ''
+  // An obstacle is always ahead; the side word only costs time.
+  if (t.label === 'obstacle') return `${noun}, ${range}${guide}`
   if (w.sideFirst)
     return (
       (t.approaching ? `${w.side[t.side]} ${noun} ${w.approaching}, ${range}` : `${w.side[t.side]} ${noun}, ${range}`) +
@@ -762,6 +764,12 @@ export function announce(key: Phrase, lang: Lang): void {
 const announced = new Map<string, { side: string; bucket: number; tier: number; t: number; distance: number }>()
 let paused = false
 let lastSpokenAt = -1e9
+// Forget what was said about one kind of thing, so the next one is announced as new (a second wall after a clear
+// stretch is not a 'static repeat' of the first).
+export function forgetWarning(label: string) {
+  announced.delete(label)
+}
+
 export function pauseWarnings(on: boolean) {
   paused = on
   if (on) announced.clear()

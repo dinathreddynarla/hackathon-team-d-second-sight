@@ -20,7 +20,7 @@ test('count', () =>
 test('guidance', () =>
   assert.equal(
     sentence({ ...base, label: 'obstacle', distance: 1.2, guidance: 'right' } as never, 'en'),
-    'obstacle ahead, one step, move right'
+    'obstacle, one step, move right'
   ))
 test('approaching', () =>
   assert.equal(
@@ -30,5 +30,5 @@ test('approaching', () =>
 test('Telugu keeps side first and adds guidance', () =>
   assert.equal(
     sentence({ ...base, label: 'obstacle', distance: 1.2, guidance: 'stop' } as never, 'te'),
-    'ముందు అడ్డంకి, ఒక అడుగు, ఆగండి'
+    'అడ్డంకి, ఒక అడుగు, ఆగండి'
   ))
