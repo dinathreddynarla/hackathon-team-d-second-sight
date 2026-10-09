@@ -60,6 +60,9 @@ if (!input.endsWith('.y4m')) {
   const ctx = await b.newContext({ permissions: ['camera'], viewport: { width: 420, height: 860 } })
   const p = await ctx.newPage()
   await p.addInitScript(() => {
+    // The app asks for 640x480 "ideal"; Chromium's fake device would crop the portrait file to fit. Drop the size hints.
+    const gum = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
+    navigator.mediaDevices.getUserMedia = c => gum({ ...c, video: true })
     window.__spoken = []
     let current = null
     const orig = speechSynthesis.speak.bind(speechSynthesis)

@@ -41,16 +41,20 @@ export function App() {
   }
 
   // Failures are spoken, not only shown: on Start, and when the camera restarts after the app was hidden.
+  // Two effects, so a model finishing its load cannot re-speak a camera failure.
   useEffect(() => {
     if (camera.state === 'error') void speak(phrase('cameraFailed', langRef.current), langRef.current)
-    else if (camera.state === 'running' && model === 'missing')
+  }, [camera.state])
+  useEffect(() => {
+    if (camera.state === 'running' && model === 'missing')
       void speak(phrase('modelMissing', langRef.current), langRef.current)
   }, [camera.state, model])
 
-  // A voice that cannot speak must not mean silence: fall back to English and say why.
+  // A voice that cannot speak must not mean silence: say the lost sentence in English, then why, and fall back.
   useEffect(() => {
-    setVoiceFailureHandler(() => {
+    setVoiceFailureHandler((_lang, lost) => {
       setVoiceFallback(true)
+      void speak(lost, 'en', true)
       void speak(phrase('voiceMissing', 'en'), 'en')
     })
     return () => setVoiceFailureHandler(null)
