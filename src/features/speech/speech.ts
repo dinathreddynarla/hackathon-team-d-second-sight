@@ -595,8 +595,11 @@ export function sentence(t: Target, lang: Lang): string {
   const noun = t.count > 1 ? `${t.count} ${w.plural[t.label]}` : w.label[t.label]
   // "move left" / "move right" / "stop" when something blocks the way ahead (distance.ts, obstacles).
   const guide = t.guidance ? `, ${w.guide[t.guidance]}` : ''
-  // An obstacle is always ahead; the side word only costs time.
-  if (t.label === 'obstacle') return `${noun}, ${range}${guide}`
+  // An obstacle is always ahead and always near: the action comes first, about 1 s. A clearly open side is added.
+  if (t.label === 'obstacle')
+    return t.guidance && t.guidance !== 'stop'
+      ? `${w.guide.stop}, ${noun}, ${w.guide[t.guidance]}`
+      : `${w.guide.stop}, ${noun}`
   if (w.sideFirst)
     return (
       (t.approaching ? `${w.side[t.side]} ${noun} ${w.approaching}, ${range}` : `${w.side[t.side]} ${noun}, ${range}`) +
