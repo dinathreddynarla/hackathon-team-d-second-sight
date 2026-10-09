@@ -3,10 +3,12 @@ import type { Detection } from '@mediapipe/tasks-vision'
 import type { TargetClass } from './detector'
 
 export type Side = 'left' | 'ahead' | 'right'
+export type Guidance = 'left' | 'right' | 'stop' | null
 export type Target = {
   label: TargetClass
   distance: number
   count: number
+  guidance: Guidance
   side: Side
   approaching: boolean
   box: { x: number; y: number; w: number; h: number }
@@ -76,6 +78,7 @@ export function analyseAll(detections: Detection[], frameW: number, frameH: numb
       label,
       distance,
       count: 1,
+      guidance: null,
       side,
       approaching: false,
       box: { x: bb.originX, y: bb.originY, w: bb.width, h: bb.height },
@@ -104,8 +107,19 @@ export function analyse(
   if (best) {
     const b = best
     b.count = all.filter(t => t.label === b.label && t.side === b.side && sameBucket(t.distance, b.distance)).length
+    b.guidance = guidanceFor(b, all)
   }
   return best
+}
+
+// Something ahead within 5 m: steer towards the third of the frame with nothing in it. Moving things: stop.
+function guidanceFor(b: Target, all: Target[]): Guidance {
+  if (b.side !== 'ahead' || b.distance >= 5) return null
+  if (b.approaching) return 'stop'
+  const blocked = (side: Side) => all.some(t => t.side === side && t.distance < 5)
+  if (!blocked('left')) return 'left'
+  if (!blocked('right')) return 'right'
+  return 'stop'
 }
 
 function sameBucket(a: number, b: number): boolean {
