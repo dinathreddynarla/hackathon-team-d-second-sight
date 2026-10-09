@@ -96,14 +96,15 @@ export function useDetection(
   // "Scan once": one sentence for everything in the current frame, on demand.
   const scan = useCallback(() => {
     const video = videoRef.current
-    if (!video || video.videoWidth === 0) return ''
+    // No loop means no detections to report: stay quiet rather than claim there is nothing around.
+    if (!running || model !== 'ready' || !video || video.videoWidth === 0) return ''
     const targets = analyseAll(lastDetectionsRef.current, video.videoWidth, video.videoHeight, kRef.current)
     const text = scanSentence(targets, langRef.current)
     pauseWarnings(true)
     void speak(text, langRef.current).finally(() => pauseWarnings(false))
     setLastSaid(text)
     return text
-  }, [videoRef])
+  }, [videoRef, running, model])
 
   return { model, lastSaid, fps, calibrate, scan, k: kRef.current }
 }

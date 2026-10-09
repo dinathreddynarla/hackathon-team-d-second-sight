@@ -21,6 +21,10 @@ export type Phrase =
   | 'sosFailed'
   | 'sosCancelled'
   | 'noSosNumber'
+  | 'cameraFailed'
+  | 'modelMissing'
+  | 'voiceMissing'
+  | 'languageName'
 
 type Words = {
   tag: string
@@ -79,6 +83,10 @@ const WORDS: Record<Lang, Words> = {
       sosFailed: 'Could not send the help message.',
       sosCancelled: 'Cancelled.',
       noSosNumber: 'No emergency number saved. Add one in settings.',
+      cameraFailed: 'Camera did not start. Check the camera permission.',
+      modelMissing: 'Detection could not start. Reinstall the app.',
+      voiceMissing: 'That voice is not installed. Open settings and tap install offline voices.',
+      languageName: 'English',
     },
   },
   te: {
@@ -125,6 +133,10 @@ const WORDS: Record<Lang, Words> = {
       sosFailed: 'సహాయ సందేశం పంపలేకపోయాం.',
       sosCancelled: 'రద్దు చేయబడింది.',
       noSosNumber: 'అత్యవసర నంబర్ సేవ్ కాలేదు. సెట్టింగ్స్‌లో జోడించండి.',
+      cameraFailed: 'కెమెరా ప్రారంభం కాలేదు. కెమెరా అనుమతి ఇవ్వండి.',
+      modelMissing: 'డిటెక్షన్ ప్రారంభం కాలేదు.',
+      voiceMissing: 'ఆ వాయిస్ ఇన్‌స్టాల్ కాలేదు. సెట్టింగ్స్ తెరిచి, ఇన్‌స్టాల్ ఆఫ్‌లైన్ వాయిసెస్ నొక్కండి.',
+      languageName: 'తెలుగు',
     },
   },
 }
@@ -198,6 +210,12 @@ export function setCurrentTarget(key: string | null) {
   currentKey = key
 }
 
+let onVoiceFailure: ((lang: Lang, text: string) => void) | null = null
+// The app decides what happens when a language's voice cannot speak (see App.tsx). It gets the sentence that was lost.
+export function setVoiceFailureHandler(handler: ((lang: Lang, text: string) => void) | null) {
+  onVoiceFailure = handler
+}
+
 async function stopSpeaking(): Promise<void> {
   if (Capacitor.isNativePlatform()) await TextToSpeech.stop().catch(() => undefined)
   else speechSynthesis.cancel()
@@ -205,7 +223,13 @@ async function stopSpeaking(): Promise<void> {
 
 async function speakRaw(text: string, lang: Lang): Promise<void> {
   if (Capacitor.isNativePlatform()) {
-    await TextToSpeech.speak({ text, lang: WORDS[lang].tag, rate: 1.0, category: 'ambient' })
+    try {
+      await TextToSpeech.speak({ text, lang: WORDS[lang].tag, rate: 1.0, category: 'ambient' })
+    } catch (err) {
+      // A missing voice must not mean silence. Only "not supported" means missing; other errors are transient.
+      const message = err instanceof Error ? err.message : String(err)
+      if (lang !== 'en' && /not supported/i.test(message)) onVoiceFailure?.(lang, text)
+    }
     return
   }
   // Browser fallback for the Mac and the phone's Chrome; the WebView has no speechSynthesis.

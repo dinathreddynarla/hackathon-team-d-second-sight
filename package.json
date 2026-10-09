@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "tsc --noEmit && vite build",
+    "build": "node scripts/copy-vendor.mjs && tsc --noEmit && vite build",
     "preview": "vite preview --host",
     "lint": "eslint --cache src && prettier --check .",
     "format": "eslint --cache src --fix && prettier --write .",
