@@ -90,6 +90,13 @@ async function run(name, scenario) {
   const p = await ctx.newPage()
   // speech recorder: logs each utterance, estimates its spoken duration (~2.6 words/s at rate 1), marks cut-offs
   await p.addInitScript(() => {
+    // The scripted scenes test warnings and alerts: the depth and sign models would only react to the fake
+    // camera's flat test pattern, so their workers are replaced with silent ones here (footage-sim runs them for real).
+    window.Worker = class {
+      constructor() {}
+      postMessage() {}
+      terminate() {}
+    }
     window.__spoken = []
     let current = null
     const orig = speechSynthesis.speak.bind(speechSynthesis)

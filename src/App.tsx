@@ -22,6 +22,7 @@ import {
   speak,
   type Lang,
 } from './features/speech/speech'
+import { useObstacles } from './features/obstacles/useObstacles'
 import { useSigns } from './features/signs/useSigns'
 import { loadGroundOn, saveGroundOn, type GroundHazard } from './features/vision/ground'
 import { useDetection } from './features/vision/useDetection'
@@ -70,6 +71,7 @@ export function App() {
     detection.show
   )
   useSigns(camera.videoRef, running && !alertBusy, lang)
+  useObstacles(camera.videoRef, running && !alertBusy && settings.walls, lang, detection.targetRef)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [setupOpen, setSetupOpen] = useState(!settings.setupDone)
   const lastTapRef = useRef(0)
@@ -391,6 +393,8 @@ export function App() {
         langs={langs}
         dim={settings.dim}
         onDim={dim => update({ dim })}
+        walls={settings.walls}
+        onWalls={walls => update({ walls })}
         sosNumbers={settings.sosNumbers}
         k={detection.k}
         fps={detection.fps}

@@ -68,6 +68,7 @@ makes single numbers dishonest.
 ## Key features
 
 - Detects people, cars, motorcycles, bicycles, buses, trucks, dogs and cows on the phone, no internet
+- Warns about walls, doors, desks, plants and other solid things ahead that have no name in the object model (an on-device depth model, once a second): "obstacle ahead, one step, move right". Clear glass can be missed
 - Reads Indian road signs while walking (37 types: stop, no entry, speed limits 20 to 80, school ahead, pedestrian crossing, speed breaker, give way, …): "Sign: stop", once per sign, never over a warning. Left/right sign pairs are spoken without the side because the model cannot tell them apart
 - Speaks distance and direction, warns when something approaches, vibrates under 3 m
 - Warns about potholes and manholes in the road within about 5 m: "pothole ahead, two steps". It can be switched off

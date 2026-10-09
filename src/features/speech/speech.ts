@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core'
 import type { TargetClass } from '../vision/detector'
 import type { Side, Target } from '../vision/distance'
 import type { GroundHazard, GroundKind } from '../vision/ground'
+import { vibrate } from '../../native/vibrate.ts'
 
 // Languages with a full sentence table. A language appears in the app only when its voice is installed on the phone.
 export const LANGS = ['en', 'te', 'hi', 'ta', 'kn'] as const
@@ -127,6 +128,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'truck',
       dog: 'dog',
       cow: 'cow',
+      obstacle: 'obstacle',
     },
     plural: {
       person: 'people',
@@ -137,6 +139,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'trucks',
       dog: 'dogs',
       cow: 'cows',
+      obstacle: 'obstacles',
     },
     side: { left: 'left', ahead: 'ahead', right: 'right' },
     range: { oneStep: 'one step', twoSteps: 'two steps', close: 'close', metres: '', far: 'far' },
@@ -224,6 +227,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'లారీ',
       dog: 'కుక్క',
       cow: 'ఆవు',
+      obstacle: 'అడ్డంకి',
     },
     plural: {
       person: 'మంది',
@@ -234,6 +238,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'లారీలు',
       dog: 'కుక్కలు',
       cow: 'ఆవులు',
+      obstacle: 'అడ్డంకులు',
     },
     side: { left: 'ఎడమవైపు', ahead: 'ముందు', right: 'కుడివైపు' },
     range: { oneStep: 'ఒక అడుగు', twoSteps: 'రెండు అడుగులు', close: 'దగ్గరగా', metres: '', far: 'దూరంగా' },
@@ -321,6 +326,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'ट्रक',
       dog: 'कुत्ता',
       cow: 'गाय',
+      obstacle: 'रुकावट',
     },
     plural: {
       person: 'लोग',
@@ -331,6 +337,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'ट्रक',
       dog: 'कुत्ते',
       cow: 'गायें',
+      obstacle: 'रुकावटें',
     },
     side: { left: 'बाईं ओर', ahead: 'सामने', right: 'दाईं ओर' },
     range: { oneStep: 'एक कदम', twoSteps: 'दो कदम', close: 'पास', metres: '', far: 'दूर' },
@@ -417,6 +424,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'லாரி',
       dog: 'நாய்',
       cow: 'மாடு',
+      obstacle: 'தடை',
     },
     plural: {
       person: 'நபர்கள்',
@@ -427,6 +435,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'லாரிகள்',
       dog: 'நாய்கள்',
       cow: 'மாடுகள்',
+      obstacle: 'தடைகள்',
     },
     side: { left: 'இடதுபுறம்', ahead: 'முன்னால்', right: 'வலதுபுறம்' },
     range: { oneStep: 'ஒரு அடி', twoSteps: 'இரண்டு அடி', close: 'அருகில்', metres: '', far: 'தொலைவில்' },
@@ -514,6 +523,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'ಲಾರಿ',
       dog: 'ನಾಯಿ',
       cow: 'ಹಸು',
+      obstacle: 'ಅಡ್ಡಿ',
     },
     plural: {
       person: 'ಜನರು',
@@ -524,6 +534,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'ಲಾರಿಗಳು',
       dog: 'ನಾಯಿಗಳು',
       cow: 'ಹಸುಗಳು',
+      obstacle: 'ಅಡ್ಡಿಗಳು',
     },
     side: { left: 'ಎಡಕ್ಕೆ', ahead: 'ಮುಂದೆ', right: 'ಬಲಕ್ಕೆ' },
     range: { oneStep: 'ಒಂದು ಹೆಜ್ಜೆ', twoSteps: 'ಎರಡು ಹೆಜ್ಜೆ', close: 'ಹತ್ತಿರ', metres: '', far: 'ದೂರ' },
@@ -602,13 +613,23 @@ function rangeWords(metres: number, lang: Lang): string {
 export function sentence(t: Target, lang: Lang): string {
   const w = WORDS[lang]
   const range = rangeWords(t.distance, lang)
+  const noun = t.count > 1 ? `${t.count} ${w.plural[t.label]}` : w.label[t.label]
+  // "move left" / "move right" / "stop" when something blocks the way ahead (distance.ts, obstacles).
+  const guide = t.guidance ? `, ${w.guide[t.guidance]}` : ''
+  // An obstacle is always ahead and always near: the action comes first, about 1 s. A clearly open side is added.
+  if (t.label === 'obstacle')
+    return t.guidance && t.guidance !== 'stop'
+      ? `${w.guide.stop}, ${noun}, ${w.guide[t.guidance]}`
+      : `${w.guide.stop}, ${noun}`
   if (w.sideFirst)
-    return t.approaching
-      ? `${w.side[t.side]} ${w.label[t.label]} ${w.approaching}, ${range}`
-      : `${w.side[t.side]} ${w.label[t.label]}, ${range}`
-  return t.approaching
-    ? `${w.label[t.label]} ${w.approaching}, ${w.side[t.side]}, ${range}`
-    : `${w.label[t.label]} ${w.side[t.side]}, ${range}`
+    return (
+      (t.approaching ? `${w.side[t.side]} ${noun} ${w.approaching}, ${range}` : `${w.side[t.side]} ${noun}, ${range}`) +
+      guide
+    )
+  return (
+    (t.approaching ? `${noun} ${w.approaching}, ${w.side[t.side]}, ${range}` : `${noun} ${w.side[t.side]}, ${range}`) +
+    guide
+  )
 }
 
 // A pothole or manhole: where, then how far. It does not move, so there is no "coming".
@@ -801,6 +822,12 @@ export function announce(key: Phrase, lang: Lang): void {
 const announced = new Map<string, { side: string; bucket: number; tier: number; t: number; distance: number }>()
 let paused = false
 let lastSpokenAt = -1e9
+// Forget what was said about one kind of thing, so the next one is announced as new (a second wall after a clear
+// stretch is not a 'static repeat' of the first).
+export function forgetWarning(label: string) {
+  announced.delete(label)
+}
+
 export function pauseWarnings(on: boolean) {
   paused = on
   if (on) {
@@ -840,7 +867,7 @@ export function warn(t: Target, lang: Lang, now: number): string | null {
   announced.set(t.label, { side: t.side, bucket, tier, t: now, distance: t.distance })
   const text = sentence(t, lang)
   void speak(text, lang, urgent, `${t.label}:${t.side}`)
-  if (t.distance < 3) navigator.vibrate?.(200)
+  if (t.distance < 3) vibrate(200)
   return text
 }
 
@@ -869,6 +896,6 @@ export function warnGround(h: GroundHazard, lang: Lang, now: number): string | n
   groundAnnounced.set(h.kind, { side: h.side, bucket, t: now, seen: now })
   const text = groundSentence(h, lang)
   void speak(text, lang, urgent)
-  if (h.distance < 3) navigator.vibrate?.(200)
+  if (h.distance < 3) vibrate(200)
   return text
 }

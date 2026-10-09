@@ -34,6 +34,7 @@ export function useDetection(
 ) {
   const detectorRef = useRef<ObjectDetector | null>(null)
   const kRef = useRef(loadK())
+  const targetRef = useRef<Target | null>(null)
   const langRef = useRef(lang)
   langRef.current = lang
   const lastRatioRef = useRef(0)
@@ -95,6 +96,7 @@ export function useDetection(
       if (window.__ss)
         window.__ss.last = { n: detections.length, labels: detections.map(d => d.categories[0]?.categoryName ?? '?') }
       const target = analyse(detections, video.videoWidth, video.videoHeight, kRef.current, now)
+      targetRef.current = target
       setCurrentTarget(target ? `${target.label}:${target.side}` : null)
       if (window.__ss)
         window.__ss.chosen = target && {
@@ -180,6 +182,7 @@ export function useDetection(
   }, [])
 
   return {
+    targetRef,
     model,
     lastSaid,
     lane,
