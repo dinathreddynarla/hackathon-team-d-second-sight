@@ -1,7 +1,8 @@
 import { Box, Dialog, Stack, TextField, Typography } from '@mui/material'
 import { useEffect, useId, useState } from 'react'
 
-import { isNative, openVoiceInstall, requestSosPermissions } from '../../native/setup'
+import { requestAlertPermissions } from '../../native/calls'
+import { isNative, openVoiceInstall } from '../../native/setup'
 import { color } from '../../theme'
 import { Bubble } from '../../ui/bubbles'
 import { Group, PageHeader, Segmented } from '../../ui/page'
@@ -70,7 +71,7 @@ export function SetupDialog({ open, lang, sosNumber, onLang, onClose, onDone }: 
     const saved = number.trim()
     // Save first, so setup is complete even if a system prompt is never answered.
     onDone(saved)
-    if (saved) await requestSosPermissions()
+    if (saved) await requestAlertPermissions()
     announce('setupDone', lang)
   }
 

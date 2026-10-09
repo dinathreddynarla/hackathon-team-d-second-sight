@@ -30,9 +30,19 @@ export type Phrase =
   | 'cameraBlocked'
   | 'tooDark'
   | 'cameraClear'
+  | 'detectionSlow'
+  | 'crowded'
   | 'helpPrompt'
   | 'stillPrompt'
-  | 'callOffer'
+  | 'calling1'
+  | 'calling2'
+  | 'calling3'
+  | 'noAnswer'
+  | 'callEnded'
+  | 'nobodyAnswered'
+  | 'callFailed'
+  | 'callingStopped'
+  | 'waitingForCall'
 
 type Words = {
   tag: string
@@ -86,11 +96,11 @@ const WORDS: Record<Lang, Words> = {
       voicesInstalled: 'Now tap test voice.',
       voiceTest: 'The voice works. Setup done.',
       setupDone: 'Setup done. No internet is needed from now on.',
-      sosPrompt: 'Are you okay? Tap the screen to cancel, or help will be messaged in 15 seconds.',
-      sosSent: 'Help message sent with your location.',
+      sosPrompt: 'Are you okay? Tap the screen to cancel, or your contacts will be messaged and called in 15 seconds.',
+      sosSent: 'Help message sent.',
       sosFailed: 'Could not send the help message.',
       sosCancelled: 'Cancelled.',
-      noSosNumber: 'No emergency number saved. Add one in settings.',
+      noSosNumber: 'No emergency contact saved. Add one in settings.',
       cameraFailed: 'Camera did not start. Check the camera permission.',
       modelMissing: 'Detection could not start. Reinstall the app.',
       voiceMissing: 'That voice is not installed. Open settings and tap install offline voices.',
@@ -100,9 +110,19 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'Camera blocked. Clear the lens.',
       tooDark: "Camera can't see. Warnings may be missed.",
       cameraClear: 'Camera clear.',
+      detectionSlow: 'Detection is slow. Warnings may be late.',
+      crowded: 'Crowd ahead.',
       helpPrompt: 'Asking for help. Tap to cancel.',
       stillPrompt: 'You have not moved for 30 seconds. Are you okay? Tap the screen to cancel.',
-      callOffer: 'Tap anywhere to call your contact.',
+      calling1: 'Calling contact one.',
+      calling2: 'Calling contact two.',
+      calling3: 'Calling contact three.',
+      noAnswer: 'No answer.',
+      callEnded: 'Calls finished.',
+      nobodyAnswered: 'Nobody answered.',
+      callFailed: 'Could not call.',
+      callingStopped: 'Stopped calling.',
+      waitingForCall: 'Waiting for the current call to end.',
     },
   },
   te: {
@@ -144,11 +164,11 @@ const WORDS: Record<Lang, Words> = {
       voiceTest: 'వాయిస్ పనిచేస్తోంది. సెటప్ పూర్తయింది.',
       setupDone: 'సెటప్ పూర్తయింది. ఇకపై ఇంటర్నెట్ అవసరం లేదు.',
       sosPrompt:
-        'మీరు బాగున్నారా? రద్దు చేయడానికి స్క్రీన్ నొక్కండి, లేకపోతే పదిహేను సెకన్లలో సహాయం కోసం సందేశం వెళ్తుంది.',
-      sosSent: 'మీ లొకేషన్‌తో సహాయ సందేశం పంపబడింది.',
+        'మీరు బాగున్నారా? రద్దు చేయడానికి స్క్రీన్ నొక్కండి, లేకపోతే పదిహేను సెకన్లలో మీ కాంటాక్ట్‌లకు సందేశం, కాల్ వెళ్తాయి.',
+      sosSent: 'సహాయ సందేశం పంపబడింది.',
       sosFailed: 'సహాయ సందేశం పంపలేకపోయాం.',
       sosCancelled: 'రద్దు చేయబడింది.',
-      noSosNumber: 'అత్యవసర నంబర్ సేవ్ కాలేదు. సెట్టింగ్స్‌లో జోడించండి.',
+      noSosNumber: 'అత్యవసర కాంటాక్ట్ సేవ్ కాలేదు. సెట్టింగ్స్‌లో జోడించండి.',
       cameraFailed: 'కెమెరా ప్రారంభం కాలేదు. కెమెరా అనుమతి ఇవ్వండి.',
       modelMissing: 'డిటెక్షన్ ప్రారంభం కాలేదు.',
       voiceMissing: 'ఆ వాయిస్ ఇన్‌స్టాల్ కాలేదు. సెట్టింగ్స్ తెరిచి, ఇన్‌స్టాల్ ఆఫ్‌లైన్ వాయిసెస్ నొక్కండి.',
@@ -158,9 +178,19 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'కెమెరాకు అడ్డు ఉంది. లెన్స్ శుభ్రం చేయండి.',
       tooDark: 'కెమెరాకు కనిపించడం లేదు. హెచ్చరికలు తప్పిపోవచ్చు.',
       cameraClear: 'కెమెరా స్పష్టం.',
+      detectionSlow: 'డిటెక్షన్ నెమ్మదిగా ఉంది. హెచ్చరికలు ఆలస్యం కావచ్చు.',
+      crowded: 'ముందు రద్దీ ఉంది.',
       helpPrompt: 'సహాయం అడుగుతోంది. రద్దు చేయడానికి నొక్కండి.',
       stillPrompt: 'మీరు ముప్పై సెకన్లుగా కదలలేదు. బాగున్నారా? రద్దు చేయడానికి స్క్రీన్ నొక్కండి.',
-      callOffer: 'మీ కాంటాక్ట్‌కు కాల్ చేయడానికి ఎక్కడైనా నొక్కండి.',
+      calling1: 'మొదటి కాంటాక్ట్‌కు కాల్ చేస్తున్నాం.',
+      calling2: 'రెండవ కాంటాక్ట్‌కు కాల్ చేస్తున్నాం.',
+      calling3: 'మూడవ కాంటాక్ట్‌కు కాల్ చేస్తున్నాం.',
+      noAnswer: 'సమాధానం లేదు.',
+      callEnded: 'కాల్‌లు ముగిశాయి.',
+      nobodyAnswered: 'ఎవరూ సమాధానం ఇవ్వలేదు.',
+      callFailed: 'కాల్ చేయలేకపోయాం.',
+      callingStopped: 'కాల్ చేయడం ఆపేశాం.',
+      waitingForCall: 'ప్రస్తుత కాల్ ముగిసే వరకు వేచి ఉన్నాం.',
     },
   },
 }
@@ -280,11 +310,12 @@ async function speakRaw(text: string, lang: Lang): Promise<void> {
 }
 
 // Routine sentences wait their turn. An urgent one (something moving, or within two steps) cuts in at once.
+// Resolves true when the sentence was spoken to the end, false when it had to wait or was cut off.
 let generation = 0
-export async function speak(text: string, lang: Lang, urgent = false, key?: string): Promise<void> {
+export async function speak(text: string, lang: Lang, urgent = false, key?: string): Promise<boolean> {
   if (busy && !urgent) {
     pending = { text, lang, at: performance.now(), key }
-    return
+    return false
   }
   if (busy) {
     generation++
@@ -293,10 +324,12 @@ export async function speak(text: string, lang: Lang, urgent = false, key?: stri
   }
   const mine = ++generation
   busy = true
+  let heard = false
   try {
     await speakRaw(text, lang)
   } finally {
-    if (mine === generation) {
+    heard = mine === generation
+    if (heard) {
       busy = false
       const next = pending
       pending = null
@@ -304,6 +337,7 @@ export async function speak(text: string, lang: Lang, urgent = false, key?: stri
       if (next && fresh) void speak(next.text, next.lang)
     }
   }
+  return heard
 }
 export function isSpeaking(): boolean {
   return busy

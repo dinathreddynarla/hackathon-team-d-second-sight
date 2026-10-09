@@ -1,6 +1,7 @@
-// Safety simulation: battery alerts, camera view alerts (blocked lens, dark scene) and the manual SOS gesture.
+// Safety simulation: battery alerts, camera view alerts (blocked lens, dark scene, washed-out view), the crowd alert,
+// and asking for help (message, then calls in turn).
 // Runs the real app (vite preview on :4173) headless and records every sentence with what the harness did at the time.
-// Usage: node tests/safety-sim.cjs [battery|camera|sos|all]  → prints JSON { scene: { actions, spoken } }
+// Usage: node tests/safety-sim.cjs [battery|camera|crowd|sos|all]  → prints JSON { scene: { actions, spoken } }; sos adds texts and calls
 const { chromium } = require(
   process.env.PLAYWRIGHT_PATH ||
     '/Users/dinathnarla/apty/projects/apty-dap-clone-1/node_modules/.pnpm/playwright@1.59.1/node_modules/playwright'
@@ -32,10 +33,24 @@ const RECORDER = () => {
   battery.charging = false
   window.__battery = battery
   navigator.getBattery = () => Promise.resolve(battery)
+  // A browser cannot send an SMS or place a call. The stand-ins accept every message, ring for 3 s (a real
+  // unanswered call rings 30 to 45 s), and only the second contact picks up.
+  window.__texts = []
+  window.__ssSms = async (to, text) => {
+    window.__texts.push({ at: performance.now(), to, text })
+    return true
+  }
+  window.__calls = []
+  window.__ssCall = number =>
+    new Promise(resolve => {
+      window.__calls.push({ at: performance.now(), number })
+      const answered = number.endsWith('2')
+      setTimeout(() => resolve({ started: true, answered, seconds: answered ? 20 : 0 }), 3000)
+    })
   try {
     localStorage.setItem(
       'secondsight.settings',
-      JSON.stringify({ lang: 'en', sosNumber: '9999999999', setupDone: true })
+      JSON.stringify({ lang: 'en', sosNumbers: ['9999999991', '9999999992', '9999999993'], setupDone: true })
     )
   } catch {}
 }
@@ -66,7 +81,21 @@ async function open() {
           .map(s => ({ t: +((s.at - t0) / 1000).toFixed(1), text: s.text, durMs: s.durMs, cutOff: s.cutOff })),
       t0
     )
-  return { b, p, act, spoken, actions }
+  const calls = async () =>
+    p.evaluate(
+      t0 =>
+        window.__calls.filter(c => c.at >= t0).map(c => ({ t: +((c.at - t0) / 1000).toFixed(1), number: c.number })),
+      t0
+    )
+  const texts = async () =>
+    p.evaluate(
+      t0 =>
+        window.__texts
+          .filter(m => m.at >= t0)
+          .map(m => ({ t: +((m.at - t0) / 1000).toFixed(1), to: m.to, text: m.text })),
+      t0
+    )
+  return { b, p, act, spoken, calls, texts, actions }
 }
 
 const scenes = {
@@ -98,7 +127,7 @@ const scenes = {
     return out
   },
 
-  // Camera running: covered lens 10 s, clear 6 s, dark street 10 s, clear again.
+  // Camera running: covered lens 10 s, clear 6 s, dark street 10 s, clear, washed-out view (rain, smoke) 10 s, clear.
   async camera() {
     const { b, p, act, spoken, actions } = await open()
     await p.getByTestId('start-stop').click()
@@ -127,6 +156,14 @@ const scenes = {
               const v = 5 + Math.floor(Math.random() * 40)
               g.fillStyle = `rgb(${v},${v},${v + 4})`
               g.fillRect(x, y, 8, 8)
+            }
+        } else if (window.__mode === 'haze') {
+          // Bright, with only faint shapes left: what heavy rain, smoke or a wet lens does to the picture.
+          for (let y = 0; y < 240; y += 40)
+            for (let x = 0; x < 320; x += 40) {
+              const v = 150 + Math.floor(Math.random() * 45)
+              g.fillStyle = `rgb(${v},${v},${v})`
+              g.fillRect(x, y, 40, 40)
             }
         }
         requestAnimationFrame(draw)
@@ -163,14 +200,61 @@ const scenes = {
     await act('lens clear again')
     await use('real')()
     await p.waitForTimeout(6000)
+    await act('washed-out view (heavy rain, smoke)')
+    await use('haze')()
+    await p.waitForTimeout(10000)
+    await act('lens clear again')
+    await use('real')()
+    await p.waitForTimeout(6000)
     const out = { actions, spoken: await spoken() }
     await b.close()
     return out
   },
 
-  // Volume-down held → 10 s countdown → message (fails in a browser: no SIM) → call offer. Then again, cancelled at 2 s.
-  async sos() {
+  // Camera running, detector scripted: one person, then five people for 12 s, then nobody, then five again.
+  // "Crowd ahead." should come once per crowd, in a gap, never over a warning.
+  async crowd() {
     const { b, p, act, spoken, actions } = await open()
+    await p.getByTestId('start-stop').click()
+    await p.waitForFunction(() => document.querySelector('video')?.readyState >= 2)
+    await p.evaluate(() => {
+      window.__people = 0
+      // People standing 5 to 9 m away, spread across the frame. Boxes as in voice-sim.cjs: 640x480 fake camera,
+      // height from the app's own formula with K = 0.75, feet on the bottom edge.
+      window.__ss.detector.detectForVideo = () => ({
+        detections: Array.from({ length: window.__people }, (_, i) => {
+          const h = ((1.7 * 0.75) / (5 + i)) * 480
+          const w = h * 0.3
+          return {
+            categories: [{ categoryName: 'person', score: 0.8 }],
+            boundingBox: { originX: 60 + i * 120 - w / 2, originY: 480 - h, width: w, height: h },
+          }
+        }),
+      })
+    })
+    const people = n => () => p.evaluate(n => void (window.__people = n), n)
+    await p.waitForTimeout(2000)
+    await act('one person in view')
+    await people(1)()
+    await p.waitForTimeout(6000)
+    await act('five people in view')
+    await people(5)()
+    await p.waitForTimeout(12000)
+    await act('nobody in view')
+    await people(0)()
+    await p.waitForTimeout(12000)
+    await act('five people in view again, within a minute of the first crowd')
+    await people(5)()
+    await p.waitForTimeout(8000)
+    const out = { actions, spoken: await spoken() }
+    await b.close()
+    return out
+  },
+
+  // Volume-down held → 10 s countdown → message to all three → contact one rings out → contact two answers.
+  // Then again, cancelled at 2 s. Then the Help button, stopped while contact one is ringing.
+  async sos() {
+    const { b, p, act, spoken, calls, texts, actions } = await open()
     const screen = async () =>
       p.evaluate(() => ({
         title: document.querySelector('[data-testid="alert-title"]')?.textContent || null,
@@ -181,8 +265,12 @@ const scenes = {
     await p.waitForTimeout(1500)
     actions.push({ t: null, action: 'screen during countdown', screen: await screen() })
     await p.waitForTimeout(13500)
-    actions.push({ t: null, action: 'screen after sending', screen: await screen() })
-    await act('tap anywhere (call)', () => document.querySelector('[data-testid="alert-cancel"]').click())
+    actions.push({ t: null, action: 'screen after the countdown', screen: await screen() })
+    await p.waitForTimeout(4000)
+    actions.push({ t: null, action: 'screen while calling', screen: await screen() })
+    await p.waitForTimeout(14000)
+    actions.push({ t: null, action: 'screen after contact two answered', screen: await screen() })
+    await act('tap anywhere (back)', () => document.querySelector('[data-testid="alert-cancel"]').click())
     await p.waitForTimeout(1500)
     actions.push({ t: null, action: 'screen after tap', screen: await screen() })
     await act('volume-down held 2 s again', () => window.dispatchEvent(new Event('volumeDownHold')))
@@ -192,7 +280,13 @@ const scenes = {
     )
     await p.waitForTimeout(3000)
     actions.push({ t: null, action: 'screen after cancel', screen: await screen() })
-    const out = { actions, spoken: await spoken() }
+    await act('Help button on the screen', () => document.querySelector('[data-testid="help"]').click())
+    await p.waitForTimeout(18000)
+    actions.push({ t: null, action: 'screen while contact one is ringing', screen: await screen() })
+    await act('tap anywhere (stop calling)', () => document.querySelector('[data-testid="alert-cancel"]').click())
+    await p.waitForTimeout(6000)
+    actions.push({ t: null, action: 'screen after stopping', screen: await screen() })
+    const out = { actions, spoken: await spoken(), texts: await texts(), calls: await calls() }
     await b.close()
     return out
   },

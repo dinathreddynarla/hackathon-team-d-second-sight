@@ -2,7 +2,6 @@ package com.teamd.secondsight;
 
 import android.Manifest;
 import android.content.Intent;
-import android.net.Uri;
 import android.telephony.SmsManager;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
@@ -12,15 +11,8 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
-// Native calls the web page cannot make itself: open Android's "Install voice data" screen, send an SOS SMS silently,
-// and call the emergency contact.
-@CapacitorPlugin(
-    name = "Setup",
-    permissions = {
-        @Permission(alias = "sms", strings = { Manifest.permission.SEND_SMS }),
-        @Permission(alias = "phone", strings = { Manifest.permission.CALL_PHONE }),
-    }
-)
+// Two native calls the web page cannot make itself: open Android's "Install voice data" screen, and send an SOS SMS silently.
+@CapacitorPlugin(name = "Setup", permissions = { @Permission(alias = "sms", strings = { Manifest.permission.SEND_SMS }) })
 public class SetupPlugin extends Plugin {
 
     @PluginMethod
@@ -59,25 +51,6 @@ public class SetupPlugin extends Plugin {
         }
         try {
             SmsManager.getDefault().sendTextMessage(to, null, text, null, null);
-            call.resolve();
-        } catch (Exception e) {
-            call.reject(e.getMessage());
-        }
-    }
-
-    // Calls straight away with CALL_PHONE granted; without it, opens the dialler with the number ready (one more tap).
-    @PluginMethod
-    public void call(PluginCall call) {
-        String to = call.getString("to");
-        if (to == null) {
-            call.reject("to is required");
-            return;
-        }
-        boolean direct = getPermissionState("phone") == PermissionState.GRANTED;
-        Intent intent = new Intent(direct ? Intent.ACTION_CALL : Intent.ACTION_DIAL, Uri.parse("tel:" + Uri.encode(to)));
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        try {
-            getContext().startActivity(intent);
             call.resolve();
         } catch (Exception e) {
             call.reject(e.getMessage());

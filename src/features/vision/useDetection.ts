@@ -26,6 +26,11 @@ export function useDetection(
   const [fps, setFps] = useState(0)
   // The caption and lane stay up only while they are still true: until this time, then they clear.
   const shownRef = useRef(false)
+  // For the alerts that watch the loop itself: when it last ran, and the most people seen in one frame since the
+  // crowd alert last looked (it resets the count when it reads it).
+  const lastTickAtRef = useRef(0)
+  const peopleRef = useRef(0)
+  const scannedAtRef = useRef(-Infinity)
   const showUntilRef = useRef(0)
 
   useEffect(() => {
@@ -58,7 +63,10 @@ export function useDetection(
       if (now <= lastTs) return // MediaPipe needs strictly increasing timestamps
       lastTs = now
       const { detections } = detector.detectForVideo(video, now)
+      lastTickAtRef.current = now
       lastDetectionsRef.current = detections
+      const people = detections.filter(d => d.categories[0]?.categoryName === 'person').length
+      if (people > peopleRef.current) peopleRef.current = people
       if (window.__ss)
         window.__ss.last = { n: detections.length, labels: detections.map(d => d.categories[0]?.categoryName ?? '?') }
       const target = analyse(detections, video.videoWidth, video.videoHeight, kRef.current, now)
@@ -117,8 +125,11 @@ export function useDetection(
     if (!running || model !== 'ready' || !video || video.videoWidth === 0) return ''
     const targets = analyseAll(lastDetectionsRef.current, video.videoWidth, video.videoHeight, kRef.current)
     const text = scanSentence(targets, langRef.current)
+    scannedAtRef.current = performance.now()
     pauseWarnings(true)
-    void speak(text, langRef.current).finally(() => pauseWarnings(false))
+    // The answer to the user's own tap, so it cuts in. Left to wait behind another sentence, it was dropped: the
+    // pause ended as soon as it was queued, and the next warning then pushed it out.
+    void speak(text, langRef.current, true).finally(() => pauseWarnings(false))
     setLastSaid(text)
     setLane(null)
     shownRef.current = true
@@ -126,7 +137,18 @@ export function useDetection(
     return text
   }, [videoRef, running, model])
 
-  return { model, lastSaid, lane, fps, calibrate, scan, k: kRef.current }
+  return {
+    model,
+    lastSaid,
+    lane,
+    fps,
+    lastTickAt: lastTickAtRef,
+    people: peopleRef,
+    scannedAt: scannedAtRef,
+    calibrate,
+    scan,
+    k: kRef.current,
+  }
 }
 
 function draw(canvas: HTMLCanvasElement, video: HTMLVideoElement, target: Target | null) {

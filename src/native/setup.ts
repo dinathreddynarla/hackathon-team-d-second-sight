@@ -4,7 +4,6 @@ import { Geolocation } from '@capacitor/geolocation'
 type SetupPlugin = {
   openVoiceInstall(): Promise<void>
   sendSms(options: { to: string; text: string }): Promise<void>
-  call(options: { to: string }): Promise<void>
   // Inherited from Capacitor's Plugin class: asks for the SEND_SMS permission declared in SetupPlugin.java.
   requestPermissions(): Promise<unknown>
 }
@@ -23,7 +22,9 @@ export async function openVoiceInstall(): Promise<boolean> {
   }
 }
 
+// A browser cannot send an SMS. window.__ssSms is a stand-in for demonstrations and automated checks.
 export async function sendSms(to: string, text: string): Promise<boolean> {
+  if (window.__ssSms) return window.__ssSms(to, text)
   if (!isNative) return false
   try {
     await Setup.sendSms({ to, text })
@@ -33,19 +34,8 @@ export async function sendSms(to: string, text: string): Promise<boolean> {
   }
 }
 
-// Places the call directly when CALL_PHONE is granted, otherwise opens the dialler with the number filled in.
-export async function callNumber(to: string): Promise<boolean> {
-  if (!isNative) return false
-  try {
-    await Setup.call({ to })
-    return true
-  } catch {
-    return false
-  }
-}
-
-// Asks for SMS, phone and location while someone can answer the prompts, not after a fall. A refusal is not final:
-// sendSms and the location lookup ask again when they are needed.
+// Asks for SMS and location while someone can answer the prompts, not after a fall. A refusal is not final:
+// sendSms and the location lookup ask again when they are needed. The calls ask for theirs in calls.ts.
 export async function requestSosPermissions(): Promise<void> {
   if (!isNative) return
   try {

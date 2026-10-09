@@ -16,6 +16,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(SetupPlugin.class);
+        registerPlugin(EmergencyCallPlugin.class);
         super.onCreate(savedInstanceState);
         // Android dims and pauses the WebView after the screen timeout; a blind user never touches the screen while walking.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
