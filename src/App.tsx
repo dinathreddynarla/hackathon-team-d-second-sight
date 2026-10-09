@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { FallAlert } from './components/FallAlert'
 import { LaneStrip } from './components/LaneStrip'
 import { StatusBar } from './components/StatusBar'
+import { setTorch } from './features/camera/torch'
 import { useCamera } from './features/camera/useCamera'
 import { watchFalls } from './features/safety/fall'
 import { useBatteryAlerts, useCameraViewAlerts } from './features/safety/useDeviceAlerts'
@@ -12,15 +13,18 @@ import { useCrowdAlerts, useDetectionSpeedAlerts } from './features/safety/useSc
 import { useSos } from './features/safety/useSos'
 import { SettingsDialog } from './features/settings/SettingsDialog'
 import { SetupDialog } from './features/settings/SetupDialog'
-import { contactsOf, MAX_CONTACTS, useSettings } from './features/settings/settings'
+import { contactsOf, DEFAULT_SOS_MESSAGE, MAX_CONTACTS, useSettings } from './features/settings/settings'
 import {
   announce,
   installedLangs,
   isSpeaking,
   phrase,
+  setSpeechPitch,
   setSpeechRate,
   setVoiceFailureHandler,
+  setVoices,
   speak,
+  voicesFor,
   type Lang,
 } from './features/speech/speech'
 import { useObstacles } from './features/obstacles/useObstacles'
@@ -33,7 +37,7 @@ import { isNative, onAutostart, onVolumeDouble, onVolumeDownHold, setWatching } 
 import { color, radius } from './theme'
 import { Bubble, Glass } from './ui/bubbles'
 import { GlobeIcon, ScanIcon, SettingsIcon, WearFigure } from './ui/icons'
-import { UI } from './ui/strings'
+import { LANGUAGE_NAME, UI } from './ui/strings'
 
 // The one authored moment: the label settles in when Start becomes Stop and back.
 const settle = keyframes({
@@ -53,7 +57,9 @@ export function App() {
   const camera = useCamera()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const running = camera.state === 'running'
-  const sos = useSos(lang, settings.sosNumbers, settings.siren)
+  const sos = useSos(lang, settings.sosNumbers, settings.sosMessages, settings.siren, on => {
+    void setTorch(camera.videoRef.current, on)
+  })
   // Detection keeps quiet while the alert is asking, sending or calling, and resumes once the result is showing.
   // Unless the alarm for people nearby is about to sound or sounding: nothing would be heard under it, and a warning
   // must not cut off the sentence that says how to stop it.
@@ -119,6 +125,13 @@ export function App() {
 
   // The saved voice speed, from the first sentence on.
   useEffect(() => setSpeechRate(settings.rate), [settings.rate])
+  useEffect(() => setSpeechPitch(settings.pitch), [settings.pitch])
+  useEffect(() => setVoices(settings.voices), [settings.voices])
+  // The offline voices of the current language, for the voice choice in Settings.
+  const [voiceList, setVoiceList] = useState<string[]>([])
+  useEffect(() => {
+    if (settingsOpen) void voicesFor(lang).then(setVoiceList)
+  }, [lang, settingsOpen])
 
   // Languages whose voice is installed on this phone (rechecked when returning from Android's voice download screen).
   const [langs, setLangs] = useState<Lang[]>(['en', settings.lang])
@@ -351,12 +364,12 @@ export function App() {
         </Bubble>
         <Bubble
           data-testid="lang-toggle"
-          aria-label={s.switchLanguage}
+          aria-label={s.switchLanguage(LANGUAGE_NAME[lang], LANGUAGE_NAME[nextLang])}
           onClick={() => changeLang(nextLang)}
           sx={{ flex: 1, px: 1.5 }}
         >
           <GlobeIcon />
-          {s.languageName}
+          {LANGUAGE_NAME[lang]}
         </Bubble>
       </Stack>
 
@@ -406,6 +419,29 @@ export function App() {
           update({ rate })
           announce('ready', lang)
         }}
+        pitch={settings.pitch}
+        onPitch={pitch => {
+          setSpeechPitch(pitch)
+          update({ pitch })
+          announce('ready', lang)
+        }}
+        voiceList={voiceList}
+        voice={settings.voices[lang] ?? null}
+        onVoice={voice => {
+          const voices = { ...settings.voices, [lang]: voice ?? undefined }
+          // Heard at once in the chosen voice: set before the sample, not when the screen next draws.
+          setVoices(voices)
+          update({ voices })
+          announce('ready', lang)
+        }}
+        sosMessages={settings.sosMessages}
+        onSosMessage={(slot, message) =>
+          update({
+            sosMessages: Array.from({ length: MAX_CONTACTS }, (_, i) =>
+              i === slot ? message : (settings.sosMessages[i] ?? DEFAULT_SOS_MESSAGE)
+            ),
+          })
+        }
         torch={settings.torch}
         onTorch={torch => update({ torch })}
         siren={settings.siren}
@@ -452,6 +488,7 @@ export function App() {
         total={sos.total}
         messaged={sos.messaged}
         alarm={sos.alarm}
+        family={sos.family}
         lang={lang}
         onCancel={sos.cancel}
       />

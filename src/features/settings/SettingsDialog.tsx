@@ -6,7 +6,8 @@ import { color } from '../../theme'
 import { Group, PageHeader, Row, Segmented } from '../../ui/page'
 import { LANGUAGE_NAME, UI } from '../../ui/strings'
 import { useBackToClose } from '../../ui/useBackToClose'
-import { announce, demoBuzz, RATES, type Lang, type SpeechRate } from '../speech/speech'
+import { announce, demoBuzz, PITCHES, RATES, type Lang, type SpeechPitch, type SpeechRate } from '../speech/speech'
+import { DEFAULT_SOS_MESSAGE } from './settings'
 
 type Props = {
   open: boolean
@@ -14,6 +15,11 @@ type Props = {
   langs: Lang[]
   dim: boolean
   rate: SpeechRate
+  pitch: SpeechPitch
+  // The offline voices of the current language, and the chosen one (null: the language's default voice).
+  voiceList: string[]
+  voice: string | null
+  sosMessages: string[]
   torch: boolean
   siren: boolean
   sosNumbers: string[]
@@ -24,6 +30,9 @@ type Props = {
   onLang: (lang: Lang) => void
   onDim: (dim: boolean) => void
   onRate: (rate: SpeechRate) => void
+  onPitch: (pitch: SpeechPitch) => void
+  onVoice: (voice: string | null) => void
+  onSosMessage: (slot: number, message: string) => void
   onTorch: (torch: boolean) => void
   onSiren: (siren: boolean) => void
   walls: boolean
@@ -44,6 +53,10 @@ export function SettingsDialog({
   langs,
   dim,
   rate,
+  pitch,
+  voiceList,
+  voice,
+  sosMessages,
   torch,
   siren,
   sosNumbers,
@@ -54,6 +67,9 @@ export function SettingsDialog({
   onLang,
   onDim,
   onRate,
+  onPitch,
+  onVoice,
+  onSosMessage,
   onTorch,
   onSiren,
   walls,
@@ -121,6 +137,33 @@ export function SettingsDialog({
               }))}
             />
           </Box>
+          <Box sx={{ p: 1.5 }}>
+            <Segmented
+              label={s.pitch}
+              value={pitch}
+              onChange={onPitch}
+              options={(Object.keys(PITCHES) as SpeechPitch[]).map(p => ({
+                value: p,
+                label: s.pitches[p],
+                testId: `pitch-${p}`,
+              }))}
+            />
+          </Box>
+          {/* Only when there is a choice. Engine names ("kn-in-x-knf-local") mean nothing read aloud, so voices are
+              numbered; each press says a sentence in that voice. */}
+          {voiceList.length > 1 && (
+            <Box sx={{ p: 1.5 }}>
+              <Segmented
+                label={s.voice}
+                value={voice && voiceList.includes(voice) ? voice : 'default'}
+                onChange={v => onVoice(v === 'default' ? null : v)}
+                options={[
+                  { value: 'default', label: s.voiceDefault, testId: 'voice-default' },
+                  ...voiceList.map((v, i) => ({ value: v, label: s.voiceN(i + 1), testId: `voice-${i + 1}` })),
+                ]}
+              />
+            </Box>
+          )}
           <Row label={s.testVoice} hint={s.testVoiceHint} testId="test-voice" onClick={() => announce('ready', lang)} />
           <Row
             label={s.installVoices}
@@ -135,7 +178,7 @@ export function SettingsDialog({
           <Row
             label={s.calibrate}
             hint={running ? s.calibrateHint : s.calibrateStopped}
-            trailing={`K ${k.toFixed(2)}`}
+            trailing={s.kNow(k)}
             disabled={!running}
             testId="calibrate"
             onClick={() => announce(onCalibrate() ? 'calibrated' : 'noPerson', lang)}
@@ -166,22 +209,37 @@ export function SettingsDialog({
               {s.contactsHint}
             </Typography>
             {s.contact.map((label, slot) => (
-              <TextField
-                key={slot}
-                id={`settings-contact-${slot + 1}`}
-                fullWidth
-                label={label}
-                type="tel"
-                value={sosNumbers[slot] ?? ''}
-                onChange={e => onSosNumber(slot, e.target.value)}
-                slotProps={{ htmlInput: { inputMode: 'tel' } }}
-              />
+              <Stack key={slot} sx={{ gap: 1 }}>
+                <TextField
+                  id={`settings-contact-${slot + 1}`}
+                  fullWidth
+                  label={label}
+                  type="tel"
+                  value={sosNumbers[slot] ?? ''}
+                  onChange={e => onSosNumber(slot, e.target.value)}
+                  slotProps={{ htmlInput: { inputMode: 'tel' } }}
+                />
+                {/* Only for a number that is there: an empty slot gets no message. */}
+                {sosNumbers[slot]?.trim() && (
+                  <TextField
+                    id={`settings-message-${slot + 1}`}
+                    fullWidth
+                    multiline
+                    minRows={2}
+                    label={s.message[slot]}
+                    placeholder={DEFAULT_SOS_MESSAGE}
+                    helperText={s.messageHint}
+                    value={sosMessages[slot] ?? DEFAULT_SOS_MESSAGE}
+                    onChange={e => onSosMessage(slot, e.target.value)}
+                  />
+                )}
+              </Stack>
             ))}
           </Stack>
           <Row
             label={s.siren}
             hint={siren ? s.sirenOn : s.sirenOff}
-            trailing={siren ? '✓' : ''}
+            checked={siren}
             testId="siren"
             onClick={() => onSiren(!siren)}
           />
@@ -192,21 +250,15 @@ export function SettingsDialog({
           <Row
             label={s.walls}
             hint={walls ? s.wallsOn : s.wallsOff}
-            trailing={walls ? '✓' : ''}
+            checked={walls}
             testId="walls"
             onClick={() => onWalls(!walls)}
           />
-          <Row
-            label={s.dim}
-            hint={dim ? s.dimOn : s.dimOff}
-            trailing={dim ? '✓' : ''}
-            testId="dim"
-            onClick={() => onDim(!dim)}
-          />
+          <Row label={s.dim} hint={dim ? s.dimOn : s.dimOff} checked={dim} testId="dim" onClick={() => onDim(!dim)} />
           <Row
             label={s.torch}
             hint={torch ? s.torchOn : s.torchOff}
-            trailing={torch ? '✓' : ''}
+            checked={torch}
             testId="torch"
             onClick={() => onTorch(!torch)}
           />

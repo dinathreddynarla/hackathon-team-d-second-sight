@@ -130,7 +130,8 @@ export function analyse(
   frameW: number,
   frameH: number,
   k: number,
-  now: number
+  now: number,
+  wallNear: (side: 'left' | 'right') => boolean = () => false
 ): Target | null {
   // Confirmed per kind of object, once per frame: a car moving from "left" to "ahead" is the same car and must not
   // need three fresh frames on its new side (in that gap a far, standing person would be announced instead).
@@ -150,9 +151,48 @@ export function analyse(
   if (best) {
     const b = best
     b.count = all.filter(t => t.label === b.label && t.side === b.side && sameBucket(t.distance, b.distance)).length
-    b.guidance = null // people move and the detector cannot see what is beside them; the cane decides
+    b.guidance = steady(b.label, steer(b, all, frameW, wallNear))
   }
   return best
+}
+
+// Only on a collision course: something within about five steps whose box covers the centre line of the picture,
+// which is where the user is walking. Then step to the side it leaves more room on, if that side is free, else the
+// other side. Free means no person, vehicle or animal there within 5 m and, when the wall model is on, no wall near
+// on that side. Something coming at the user, or no free side: stop. With the wall model off, a wall or glass
+// beside the person cannot be seen; the cane still has the last word.
+// ponytail: the centre line and fixed 3.5 m / 5 m limits; tune on a street walk.
+const STEER_WITHIN_M = 3.5 // about five steps
+export function steer(
+  b: Target,
+  all: Target[],
+  frameW: number,
+  wallNear: (side: 'left' | 'right') => boolean = () => false
+): Guidance {
+  const onCourse = b.box.x <= frameW / 2 && b.box.x + b.box.w >= frameW / 2
+  if (b.distance > STEER_WITHIN_M || !onCourse) return null
+  if (b.approaching) return 'stop'
+  const centre = b.box.x + b.box.w / 2
+  const first: 'left' | 'right' = centre < frameW / 2 ? 'right' : 'left'
+  const other: 'left' | 'right' = first === 'left' ? 'right' : 'left'
+  const free = (side: 'left' | 'right') =>
+    !wallNear(side) && !all.some(t => t !== b && t.side === side && t.distance < 5)
+  if (free(first)) return first
+  if (free(other)) return other
+  return 'stop'
+}
+
+// A direction is given only once two frames in a row agree, so a box wobbling across the middle of the frame does not
+// say "left" then "right".
+let lastSteer: { label: string; guidance: Guidance; times: number } = { label: '', guidance: null, times: 0 }
+function steady(label: string, guidance: Guidance): Guidance {
+  if (guidance === 'stop' || guidance === null) {
+    lastSteer = { label, guidance, times: 0 }
+    return guidance
+  }
+  const same = lastSteer.label === label && lastSteer.guidance === guidance
+  lastSteer = { label, guidance, times: same ? lastSteer.times + 1 : 1 }
+  return lastSteer.times >= 2 ? guidance : null
 }
 
 function sameBucket(a: number, b: number): boolean {

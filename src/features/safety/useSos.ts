@@ -3,9 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { canCall, placeCall } from '../../native/calls'
 import { sendSmsToAll } from '../../native/setup'
-import { contactsOf } from '../settings/settings'
+import { contactsWithMessages } from '../settings/settings'
 import { announce, isSpeaking, phrase, speak, type Lang, type Phrase } from '../speech/speech'
-import { startSiren, stopSiren } from './siren'
+import { beepSos, SOS_MS, startSiren, stopSiren } from './siren'
 import { vibrate } from '../../native/vibrate.ts'
 
 export type SosState = 'idle' | 'countdown' | 'sending' | 'calling' | 'answered' | 'noAnswer' | 'failed'
@@ -14,12 +14,19 @@ export type SosState = 'idle' | 'countdown' | 'sending' | 'calling' | 'answered'
 export type SosReason = 'fall' | 'lyingStill' | 'manual'
 const COUNTDOWN_S: Record<SosReason, number> = { fall: 15, lyingStill: 30, manual: 10 }
 const RESULT_SHOWN_MS = 60000 // the result screen closes itself, so the main screen is not left covered
-const ALARM_MS = 180000 // … later while the alarm is sounding, which stops when the screen closes
+// The alarm sounds until stopped. After this long it gives one round a minute: the battery has to last until
+// someone comes.
+const LOUD_MS = 600000
+// Stopping the alarm takes three separate taps within this time. A phone lying screen-down on the road touches the
+// ground once, and a bump is one more: it must not silence the one thing calling for help.
+const TAPS_TO_STOP = 3
+const TAPS_WINDOW_MS = 10000
 const PROMPT = { fall: 'sosPrompt', lyingStill: 'stillPrompt', manual: 'helpPrompt' } as const
-const MESSAGE: Record<SosReason, string> = {
-  fall: 'Second Sight: possible fall detected. I may need help.',
-  lyingStill: 'Second Sight: I have been lying still for over 30 seconds. I may need help.',
-  manual: 'Second Sight: I need help.',
+// Added after each contact's own message: what happened. The location follows it.
+const WHAT_HAPPENED: Record<SosReason, string> = {
+  fall: 'Second Sight: possible fall detected.',
+  lyingStill: 'Second Sight: lying still for over 30 seconds.',
+  manual: 'Second Sight: help button pressed.',
 }
 // Someone who missed the first ring may pick up the second time round.
 const ROUNDS = 2
@@ -28,9 +35,16 @@ const WAIT_FOR_LINE_MS = 45000
 const CALLING: Phrase[] = ['calling1', 'calling2', 'calling3']
 const pause = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
-// Speak, count down with vibration pulses, then SMS every saved contact with a maps link, then phone them in order
-// until one answers. If nobody could be reached, sound an alarm for the people nearby (`siren`: the setting).
-export function useSos(lang: Lang, sosNumbers: string[], siren: boolean) {
+// Speak, count down with vibration pulses, then SMS every saved contact (their own message, what happened, a maps
+// link), then phone them in order until one answers. If nobody could be reached, sound an alarm for the people nearby
+// (`siren`: the setting), with `flash` (the torch) blinking along.
+export function useSos(
+  lang: Lang,
+  sosNumbers: string[],
+  sosMessages: string[],
+  siren: boolean,
+  flash?: (on: boolean) => void
+) {
   const [state, setState] = useState<SosState>('idle')
   const [reason, setReason] = useState<SosReason>('fall')
   const [secondsLeft, setSecondsLeft] = useState(COUNTDOWN_S.fall)
@@ -46,8 +60,10 @@ export function useSos(lang: Lang, sosNumbers: string[], siren: boolean) {
   const lineBusyRef = useRef(false)
   const langRef = useRef(lang)
   langRef.current = lang
-  const contacts = contactsOf(sosNumbers)
+  const contacts = contactsWithMessages(sosNumbers, sosMessages)
   const contactsRef = useRef(contacts)
+  const flashRef = useRef(flash)
+  flashRef.current = flash
   contactsRef.current = contacts
 
   const clear = () => {
@@ -84,7 +100,9 @@ export function useSos(lang: Lang, sosNumbers: string[], siren: boolean) {
     // Everyone gets the message first, so whoever answers the call already knows what happened and where. All are
     // handed to the phone together, and each is counted only once the network has taken it: the wait is one
     // message long, not three, and "sent" is not said of a message that never left.
-    const results = await sendSmsToAll(list, `${MESSAGE[why]} ${where}`)
+    const results = await sendSmsToAll(
+      list.map(c => ({ to: c.number, text: `${c.message}\n${WHAT_HAPPENED[why]}\n${where}` }))
+    )
     // Cancelled meanwhile: the messages have gone, nobody is called.
     if (!live()) return
     const sent = results.some(Boolean)
@@ -114,7 +132,7 @@ export function useSos(lang: Lang, sosNumbers: string[], siren: boolean) {
         setContact(i + 1)
         await say(CALLING[i] ?? 'calling1')
         if (!live()) return
-        const call = placeCall(list[i] ?? '')
+        const call = placeCall(list[i]?.number ?? '')
         onTheLineRef.current = call
         lineBusyRef.current = true
         // Only the newest call frees the line: an older one that ends late must not.
@@ -170,7 +188,19 @@ export function useSos(lang: Lang, sosNumbers: string[], siren: boolean) {
 
   // The same control cancels the countdown, stops the message or the calling, and dismisses the result.
   // A call already on the line is not hung up: the phone's own end-call button does that.
+  const tapsRef = useRef<number[]>([])
+  const alarmDueRef = useRef(false)
   const cancel = useCallback(() => {
+    if (alarmDueRef.current) {
+      const now = performance.now()
+      const taps = [...tapsRef.current.filter(t => now - t < TAPS_WINDOW_MS), now]
+      tapsRef.current = taps
+      if (taps.length < TAPS_TO_STOP) {
+        announce(taps.length === TAPS_TO_STOP - 1 ? 'alarmOneMore' : 'alarmTwoMore', lang)
+        return
+      }
+    }
+    tapsRef.current = []
     runRef.current++
     clear()
     if (state === 'countdown' || state === 'sending') announce('sosCancelled', lang)
@@ -191,28 +221,41 @@ export function useSos(lang: Lang, sosNumbers: string[], siren: boolean) {
   // again, or the screen closing by itself ends it.
   const [alarm, setAlarm] = useState(false)
   const unreached = state === 'noAnswer' || state === 'failed'
+  alarmDueRef.current = unreached && siren
   useEffect(() => {
     if (!unreached || !siren) return
     let on = true
-    const id = window.setInterval(() => {
-      if (isSpeaking()) return
-      clearInterval(id)
-      void speak(phrase('alarmOn', langRef.current), langRef.current, true).then(() => {
-        if (on && startSiren()) setAlarm(true)
-      })
-    }, 300)
+    const started = performance.now()
+    void (async () => {
+      while (on && isSpeaking()) await pause(300)
+      if (!on) return
+      await speak(phrase('alarmOn', langRef.current), langRef.current, true)
+      if (!on || !startSiren()) return
+      setAlarm(true)
+      while (on) {
+        // One S O S, then the words: someone walking past hears them within about ten seconds.
+        beepSos(flashRef.current)
+        await pause(SOS_MS)
+        // A beep brings people; words tell them what to do. English, then the user's own language for anyone
+        // nearby who speaks it.
+        if (on) await speak(phrase('bystander', 'en'), 'en', true)
+        if (on && langRef.current !== 'en') await speak(phrase('bystander', langRef.current), langRef.current, true)
+        if (on && performance.now() - started > LOUD_MS) await pause(60000)
+      }
+    })()
     return () => {
       on = false
-      clearInterval(id)
       stopSiren()
+      flashRef.current?.(false)
       setAlarm(false)
     }
   }, [unreached, siren])
 
   useEffect(() => {
     if (state !== 'answered' && state !== 'noAnswer' && state !== 'failed') return
-    const shown = siren && state !== 'answered' ? ALARM_MS : RESULT_SHOWN_MS
-    const id = window.setTimeout(() => setState('idle'), shown)
+    // The alarm is not timed out: it stops only when someone stops it.
+    if (siren && state !== 'answered') return
+    const id = window.setTimeout(() => setState('idle'), RESULT_SHOWN_MS)
     return () => clearTimeout(id)
   }, [state, siren])
 
@@ -222,6 +265,7 @@ export function useSos(lang: Lang, sosNumbers: string[], siren: boolean) {
     secondsLeft,
     contact,
     total: contacts.length,
+    family: contacts[0]?.number ?? null,
     messaged,
     alarm,
     alarmDue: unreached && siren,

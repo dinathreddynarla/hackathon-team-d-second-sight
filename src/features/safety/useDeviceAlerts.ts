@@ -1,7 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react'
 
 import { hasTorch, setTorch, torchOn } from '../camera/torch'
-import { obstacleNearRecently } from '../obstacles/useObstacles'
+import { noteCameraView, obstacleNearRecently } from '../obstacles/useObstacles'
 import { announce, isSpeaking, phrase, speak, type Lang } from '../speech/speech'
 
 // The user cannot see a dead battery icon or a finger over the lens, so both are spoken.
@@ -33,7 +33,9 @@ export function useBatteryAlerts(langRef: RefObject<Lang>, hold: boolean) {
       const say = (key: 'batteryLow' | 'batteryCritical', level: number) => {
         const before = warned
         warned = level
-        void speak(phrase(key, langRef.current).replace('{n}', pct), langRef.current, true).then(heard => {
+        // Never urgent: it waits for a gap rather than cut off a warning about something close. Not heard means
+        // said again later (below).
+        void speak(phrase(key, langRef.current).replace('{n}', pct), langRef.current).then(heard => {
           // Cut off before it was heard: not done. It is said at the next change in the level, or after the alert.
           if (!heard && warned === level) warned = before
         })
@@ -164,9 +166,11 @@ export function useCameraViewAlerts(
       g.drawImage(video, 0, 0, canvas.width, canvas.height)
       const stats = viewStats(g.getImageData(0, 0, canvas.width, canvas.height).data)
       const raw = classify(stats)
+      const pitch = stats.mean < PITCH_MEAN && stats.std < PITCH_STD
+      // Depth is distrusted only for a covered lens or a pitch-black picture: a dim room still shows its walls.
+      noteCameraView(raw === 'blocked' || pitch ? 'blocked' : 'clear')
       // A wall at the lens is flat too: when depth says something is near, it is an obstacle, not a covered lens.
       const seen = raw === 'blocked' && obstacleNearRecently() ? 'clear' : raw
-      const pitch = stats.mean < PITCH_MEAN && stats.std < PITCH_STD
       if (torchOn(video)) {
         litBlind = seen === 'blocked' || pitch ? litBlind + 1 : 0
         if (litBlind >= 2) {
@@ -215,7 +219,9 @@ export function useCameraViewAlerts(
         spoken = state
         spokenAt = now
         const text = phrase(state === 'blocked' ? 'cameraBlocked' : 'tooDark', langRef.current)
-        void speak(text, langRef.current, true).then(heard => {
+        // Waits for a gap like the battery: a close warning matters more than news about the camera. If it is
+        // dropped, the retry below says it again.
+        void speak(text, langRef.current).then(heard => {
           if (!heard && spoken === state) spokenAt = performance.now() - REPEAT_MS[state] + RETRY_MS
         })
       }

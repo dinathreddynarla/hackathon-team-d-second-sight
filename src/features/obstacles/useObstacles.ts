@@ -18,6 +18,21 @@ export function obstacleNearRecently(ms = 3000): boolean {
 }
 // ponytail: fixed ratios from one office walk; tune outdoors, and per camera height if worn lower.
 
+// A dark or covered picture gives the depth model nothing real to measure, and it then calls everything near: on a
+// dark desk it said "stop, obstacle" at nothing. Depth readings are not used while the camera view is not clear.
+let badViewAt = -Infinity
+export function noteCameraView(view: 'clear' | 'blocked' | 'dark' | 'unclear') {
+  if (view === 'dark' || view === 'blocked') badViewAt = performance.now()
+}
+const BAD_VIEW_HOLD_MS = 4000 // two view checks
+
+// What depth last saw on each side, so steering around a person does not send the user into a wall beside them.
+let lastNearness: { n: Nearness; at: number } | null = null
+export function wallNear(side: 'left' | 'right'): boolean {
+  return lastNearness !== null && performance.now() - lastNearness.at < 3000 && lastNearness.n[side] >= SIDE_NEAR
+}
+const SIDE_NEAR = 0.6 // looser than NEAR: for steering, a side half as near as the floor is already too close
+
 // Walls, doors, plants, poles, parked carts: anything solid ahead that the object detector has no name for.
 // Spoken through warn(), so it follows the same priority, repeat and interrupt rules as people and vehicles.
 export function useObstacles(
@@ -53,6 +68,12 @@ export function useObstacles(
       busy = false
       const n = msg.nearness as Nearness
       if (window.__ss) window.__ss.depth = n
+      if (performance.now() - badViewAt < BAD_VIEW_HOLD_MS) {
+        lastNearness = null
+        streak = 0
+        return
+      }
+      lastNearness = { n, at: performance.now() }
       if (n.ahead >= NEAR) {
         streak++
         nearAt = performance.now()

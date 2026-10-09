@@ -16,6 +16,7 @@ import {
 } from '../speech/speech'
 import { createDetector, preferredDelegate } from './detector'
 import { analyse, analyseAll, calibrateK, loadK, saveK, type Side, type Target } from './distance'
+import { wallNear } from '../obstacles/useObstacles'
 import { createLightWatch, lightColour, type LightColour } from './trafficLight'
 import type { GroundHazard } from './ground'
 
@@ -105,7 +106,7 @@ export function useDetection(
       if (people > peopleRef.current) peopleRef.current = people
       if (window.__ss)
         window.__ss.last = { n: detections.length, labels: detections.map(d => d.categories[0]?.categoryName ?? '?') }
-      const target = analyse(detections, video.videoWidth, video.videoHeight, kRef.current, now)
+      const target = analyse(detections, video.videoWidth, video.videoHeight, kRef.current, now, wallNear)
       targetRef.current = target
       setCurrentTarget(target ? `${target.label}:${target.side}` : null)
       if (window.__ss)

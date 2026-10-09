@@ -466,6 +466,8 @@ const scenes = {
         title: document.querySelector('[data-testid="alert-title"]')?.textContent || null,
         button: document.querySelector('[data-testid="alert-cancel"]')?.getAttribute('aria-label') || null,
         alarm: document.querySelector('[data-testid="alert-cancel"]')?.getAttribute('data-alarm') === 'true',
+        call112: document.querySelector('[data-testid="call-112"]')?.getAttribute('href') || null,
+        family: document.querySelector('[data-testid="call-family"]')?.textContent || null,
       }))
     await p.evaluate(() => {
       window.__ssCall = number =>
@@ -492,10 +494,18 @@ const scenes = {
     await p.waitForSelector('[data-testid="alert-cancel"][data-alarm="true"]', { timeout: 120000 })
     await act('the alarm starts sounding')
     actions.push({ t: null, action: 'screen while the alarm sounds', screen: await screen() })
-    await p.waitForTimeout(4000)
-    await act('tap anywhere (stop the alarm)', () => document.querySelector('[data-testid="alert-cancel"]').click())
+    // Two S O S rounds and the words for whoever comes.
+    await p.waitForTimeout(22000)
+    // Stopping takes three separate taps: a phone lying screen-down touches the ground once.
+    const tap = () => document.querySelector('[data-testid="alert-cancel"]').click()
+    await act('one tap', tap)
+    await p.waitForTimeout(3000)
+    actions.push({ t: null, action: 'screen after one tap', screen: await screen() })
+    await act('second tap', tap)
+    await p.waitForTimeout(3000)
+    await act('third tap', tap)
     await p.waitForTimeout(6000)
-    actions.push({ t: null, action: 'screen after the tap', screen: await screen() })
+    actions.push({ t: null, action: 'screen after the third tap', screen: await screen() })
     const out = { actions, spoken: await spoken(), calls: await calls() }
     await b.close()
     return out
