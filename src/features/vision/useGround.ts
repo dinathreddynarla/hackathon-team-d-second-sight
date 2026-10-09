@@ -40,9 +40,11 @@ export function useGround(
   onSaidRef.current = onSaid
   const [state, setState] = useState<GroundState>(enabled ? 'loading' : 'off')
 
+  // The model is loaded only while the camera is watching (and not during an alert), like the sign and wall models:
+  // after Stop or during an SOS countdown it would only take battery and CPU from what matters then.
   useEffect(() => {
-    if (!enabled) {
-      setState('off')
+    if (!enabled || !running) {
+      setState(enabled ? 'loading' : 'off')
       return
     }
     setState('loading')
@@ -67,7 +69,7 @@ export function useGround(
       worker.terminate()
       workerRef.current = null
     }
-  }, [enabled])
+  }, [enabled, running])
 
   useEffect(() => {
     const video = videoRef.current

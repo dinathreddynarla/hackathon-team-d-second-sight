@@ -69,16 +69,21 @@ type RowProps = {
   alarm?: boolean
   disabled?: boolean
   expanded?: boolean
+  // An on/off row: a screen reader then says "switch, on" instead of reading out a check mark.
+  checked?: boolean
   testId?: string
   onClick: () => void
 }
 // A row that does something when pressed. The hint says what will happen, or why it cannot yet.
-export function Row({ label, hint, trailing, chevron, alarm, disabled, expanded, testId, onClick }: RowProps) {
+export function Row({ label, hint, trailing, chevron, alarm, disabled, expanded, checked, testId, onClick }: RowProps) {
+  const mark = checked === undefined ? trailing : checked ? <span aria-hidden>✓</span> : null
   return (
     <ButtonBase
       data-testid={testId}
       disabled={disabled}
       aria-expanded={expanded}
+      role={checked === undefined ? undefined : 'switch'}
+      aria-checked={checked}
       onClick={onClick}
       sx={{
         width: '100%',
@@ -105,7 +110,7 @@ export function Row({ label, hint, trailing, chevron, alarm, disabled, expanded,
           </Typography>
         )}
       </Box>
-      {(trailing || chevron) && (
+      {(mark || chevron) && (
         <Box
           sx={{
             display: 'inline-flex',
@@ -116,7 +121,7 @@ export function Row({ label, hint, trailing, chevron, alarm, disabled, expanded,
             flexShrink: 0,
           }}
         >
-          {trailing}
+          {mark}
           {chevron && <ChevronIcon down={chevron === 'down'} />}
         </Box>
       )}

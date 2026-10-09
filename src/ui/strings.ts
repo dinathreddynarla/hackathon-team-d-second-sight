@@ -1,4 +1,4 @@
-import type { Lang, SpeechRate } from '../features/speech/speech'
+import type { Lang, SpeechPitch, SpeechRate } from '../features/speech/speech'
 import type { Side } from '../features/vision/distance'
 
 // Every on-screen label and screen-reader name, in both languages. Spoken warnings stay in speech.ts.
@@ -11,8 +11,7 @@ const en = {
   stopLabel: 'Stop Second Sight',
   scan: 'Scan once',
   scanLabel: 'Scan once: hear everything in view',
-  languageName: 'English',
-  switchLanguage: 'Language: English. Switch to Telugu',
+  switchLanguage: (now: string, next: string) => `Language: ${now}. Switch to ${next}`,
   settings: 'Settings',
   close: 'Close',
   help: 'Help',
@@ -53,7 +52,11 @@ const en = {
     failed: 'Could not place a call',
     failedHint: 'Check the SIM card, the signal, and that a contact is saved.',
     alarmHint: 'The alarm is sounding so that people nearby can help.',
-    stopAlarm: 'Stop the alarm',
+    stopAlarm: 'Tap 3 times to stop the alarm',
+    emergency: 'EMERGENCY',
+    emergencyHint: 'This person needs help. Please call 112.',
+    call112: 'Call 112',
+    callFamily: (n: string) => `Call family: ${n}`,
     back: 'Back',
   },
   set: {
@@ -66,7 +69,15 @@ const en = {
     installVoicesHint: 'Opens Android’s voice download screen. Needs Wi-Fi once.',
     installVoicesBrowser: 'Only needed in the Android app.',
     speed: 'Voice speed',
-    speeds: { slow: 'Slow', normal: 'Normal', fast: 'Fast' } as Record<SpeechRate, string>,
+    speeds: { slowest: 'Slowest', slow: 'Slow', normal: 'Normal', fast: 'Fast', fastest: 'Fastest' } as Record<
+      SpeechRate,
+      string
+    >,
+    pitch: 'Voice pitch',
+    pitches: { low: 'Lower', normal: 'Normal', high: 'Higher' } as Record<SpeechPitch, string>,
+    voice: 'Voice',
+    voiceDefault: 'Default',
+    voiceN: (n: number) => `Voice ${n}`,
     distanceGroup: 'Distance',
     calibrate: 'Calibrate distance',
     calibrateHint: 'Stand a person 5 metres away, point the camera at them, then press.',
@@ -80,6 +91,8 @@ const en = {
     off: 'Off',
     emergencyGroup: 'Emergency contacts',
     contact: ['First contact', 'Second contact', 'Third contact'],
+    message: ['Message to first contact', 'Message to second contact', 'Message to third contact'],
+    messageHint: 'What happened and your location are added at the end.',
     contactsHint:
       'When help is needed, all get a message, then are called in this order. Leave a field empty to skip it.',
     siren: 'Alarm sound',
@@ -107,6 +120,7 @@ const en = {
     detector: 'Detector',
     detectorHint: 'For debugging. The app reloads when you change it.',
     fps: (n: number) => `${n} frames per second`,
+    kNow: (k: number) => `Now ${k.toFixed(2)}`,
     auto: 'Auto',
   },
   setup: {
@@ -140,8 +154,7 @@ const te: Strings = {
   stopLabel: 'సెకండ్ సైట్ ఆపు',
   scan: 'ఒకసారి స్కాన్',
   scanLabel: 'ఒకసారి స్కాన్: ముందున్నవన్నీ వినండి',
-  languageName: 'తెలుగు',
-  switchLanguage: 'భాష: తెలుగు. ఇంగ్లీష్‌కు మార్చు',
+  switchLanguage: (now, next) => `భాష: ${now}. ${next}కు మార్చు`,
   settings: 'సెట్టింగ్స్',
   close: 'మూసివేయి',
   help: 'సహాయం',
@@ -182,7 +195,11 @@ const te: Strings = {
     failed: 'కాల్ చేయలేకపోయాం',
     failedHint: 'సిమ్ కార్డ్, సిగ్నల్, మరియు కాంటాక్ట్ సేవ్ అయిందో లేదో చూడండి.',
     alarmHint: 'దగ్గరలో ఉన్నవారు సహాయం చేయడానికి అలారం మోగుతోంది.',
-    stopAlarm: 'అలారం ఆపు',
+    stopAlarm: 'అలారం ఆపడానికి 3 సార్లు నొక్కండి',
+    emergency: 'అత్యవసరం',
+    emergencyHint: 'ఈ వ్యక్తికి సహాయం కావాలి. దయచేసి 112 కి కాల్ చేయండి.',
+    call112: '112 కి కాల్ చేయండి',
+    callFamily: n => `కుటుంబానికి కాల్: ${n}`,
     back: 'వెనక్కి',
   },
   set: {
@@ -195,7 +212,12 @@ const te: Strings = {
     installVoicesHint: 'ఆండ్రాయిడ్ వాయిస్ డౌన్‌లోడ్ స్క్రీన్ తెరుస్తుంది. ఒకసారి వై-ఫై కావాలి.',
     installVoicesBrowser: 'ఆండ్రాయిడ్ యాప్‌లో మాత్రమే అవసరం.',
     speed: 'వాయిస్ వేగం',
-    speeds: { slow: 'నెమ్మదిగా', normal: 'సాధారణం', fast: 'వేగంగా' },
+    speeds: { slowest: 'చాలా నెమ్మదిగా', slow: 'నెమ్మదిగా', normal: 'సాధారణం', fast: 'వేగంగా', fastest: 'చాలా వేగంగా' },
+    pitch: 'వాయిస్ స్వరం',
+    pitches: { low: 'తక్కువ', normal: 'సాధారణం', high: 'ఎక్కువ' },
+    voice: 'వాయిస్',
+    voiceDefault: 'డిఫాల్ట్',
+    voiceN: n => `వాయిస్ ${n}`,
     distanceGroup: 'దూరం',
     calibrate: 'దూరం కాలిబ్రేట్ చేయి',
     calibrateHint: 'ఒక వ్యక్తిని 5 మీటర్ల దూరంలో నిలబెట్టి, కెమెరా వారివైపు పెట్టి, నొక్కండి.',
@@ -211,6 +233,8 @@ const te: Strings = {
     off: 'ఆఫ్',
     emergencyGroup: 'అత్యవసర కాంటాక్ట్‌లు',
     contact: ['మొదటి కాంటాక్ట్', 'రెండవ కాంటాక్ట్', 'మూడవ కాంటాక్ట్'],
+    message: ['మొదటి కాంటాక్ట్‌కు సందేశం', 'రెండవ కాంటాక్ట్‌కు సందేశం', 'మూడవ కాంటాక్ట్‌కు సందేశం'],
+    messageHint: 'ఏమి జరిగిందో, మీ లొకేషన్ చివరలో జోడించబడతాయి.',
     contactsHint: 'సహాయం అవసరమైనప్పుడు అందరికీ సందేశం పంపి, ఈ క్రమంలో కాల్ చేస్తాం. వద్దనుకున్న చోట ఖాళీగా వదిలేయండి.',
     siren: 'అలారం శబ్దం',
     sirenOn: 'ఆన్. ఏ కాంటాక్ట్ దొరకకపోతే, దగ్గరలో ఉన్నవారి కోసం ఫోన్ గట్టిగా అలారం మోగిస్తుంది.',
@@ -237,6 +261,7 @@ const te: Strings = {
     detector: 'డిటెక్టర్',
     detectorHint: 'డీబగ్గింగ్ కోసం. మార్చితే యాప్ రీలోడ్ అవుతుంది.',
     fps: n => `సెకనుకు ${n} ఫ్రేమ్‌లు`,
+    kNow: k => `ప్రస్తుతం ${k.toFixed(2)}`,
     auto: 'ఆటో',
   },
   setup: {

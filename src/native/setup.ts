@@ -30,13 +30,13 @@ export async function openVoiceInstall(): Promise<boolean> {
   }
 }
 
-// The same text to every number, all handed to the phone together. One answer per number: true only when the network
-// has taken that message, so "sent" is never said of a message still sitting in the phone (flight mode, no signal).
+// Each contact's own text, all handed to the phone together. One answer per message: true only when the network has
+// taken it, so "sent" is never said of a message still sitting in the phone (flight mode, no signal).
 // A browser cannot send an SMS. window.__ssSms is a stand-in for demonstrations and automated checks.
-export async function sendSmsToAll(numbers: string[], text: string): Promise<boolean[]> {
+export async function sendSmsToAll(messages: { to: string; text: string }[]): Promise<boolean[]> {
   const standIn = window.__ssSms
-  if (standIn) return Promise.all(numbers.map(to => standIn(to, text)))
-  const none = numbers.map(() => false)
+  if (standIn) return Promise.all(messages.map(m => standIn(m.to, m.text)))
+  const none = messages.map(() => false)
   if (!isNative) return none
   try {
     // Asked once, here: three messages asking at the same moment would put up three prompts.
@@ -47,7 +47,7 @@ export async function sendSmsToAll(numbers: string[], text: string): Promise<boo
     return none
   }
   return Promise.all(
-    numbers.map(to =>
+    messages.map(({ to, text }) =>
       Setup.sendSms({ to, text }).then(
         () => true,
         () => false

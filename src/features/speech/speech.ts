@@ -60,6 +60,9 @@ export type Phrase =
   | 'cameraClear'
   | 'torchOn'
   | 'alarmOn'
+  | 'bystander'
+  | 'alarmTwoMore'
+  | 'alarmOneMore'
   | 'detectionSlow'
   | 'crowded'
   | 'helpPrompt'
@@ -182,7 +185,10 @@ const WORDS: Record<Lang, Words> = {
       tooDark: "Camera can't see. Warnings may be missed.",
       cameraClear: 'Camera clear.',
       torchOn: 'Dark. Torch on.',
-      alarmOn: 'Alarm on. Tap to stop.',
+      alarmOn: 'Alarm on. Tap three times to stop.',
+      bystander: 'Emergency. This person needs help. Please call one one two.',
+      alarmTwoMore: 'Tap two more times to stop the alarm.',
+      alarmOneMore: 'Tap once more to stop the alarm.',
       detectionSlow: 'Detection is slow. Warnings may be late.',
       crowded: 'Crowd ahead.',
       helpPrompt: 'Asking for help. Tap to cancel.',
@@ -284,7 +290,10 @@ const WORDS: Record<Lang, Words> = {
       tooDark: 'కెమెరాకు కనిపించడం లేదు. హెచ్చరికలు తప్పిపోవచ్చు.',
       cameraClear: 'కెమెరా స్పష్టం.',
       torchOn: 'చీకటిగా ఉంది. టార్చ్ ఆన్ అయింది.',
-      alarmOn: 'అలారం ఆన్. ఆపడానికి నొక్కండి.',
+      alarmOn: 'అలారం ఆన్. ఆపడానికి మూడు సార్లు నొక్కండి.',
+      bystander: 'అత్యవసరం. ఈ వ్యక్తికి సహాయం కావాలి. దయచేసి 1 1 2 కి కాల్ చేయండి.',
+      alarmTwoMore: 'అలారం ఆపడానికి ఇంకా రెండు సార్లు నొక్కండి.',
+      alarmOneMore: 'ఆపడానికి ఇంకోసారి నొక్కండి.',
       detectionSlow: 'డిటెక్షన్ నెమ్మదిగా ఉంది. హెచ్చరికలు ఆలస్యం కావచ్చు.',
       crowded: 'ముందు రద్దీ ఉంది.',
       helpPrompt: 'సహాయం అడుగుతోంది. రద్దు చేయడానికి నొక్కండి.',
@@ -385,7 +394,10 @@ const WORDS: Record<Lang, Words> = {
       tooDark: 'कैमरा देख नहीं पा रहा। चेतावनियाँ छूट सकती हैं।',
       cameraClear: 'कैमरा साफ़।',
       torchOn: 'अँधेरा है। टॉर्च चालू।',
-      alarmOn: 'अलार्म चालू। रोकने के लिए दबाएँ।',
+      alarmOn: 'अलार्म चालू। रोकने के लिए तीन बार दबाएँ।',
+      bystander: 'आपातकाल। इस व्यक्ति को मदद चाहिए। कृपया 1 1 2 पर कॉल करें।',
+      alarmTwoMore: 'अलार्म रोकने के लिए दो बार और दबाएँ।',
+      alarmOneMore: 'रोकने के लिए एक बार और दबाएँ।',
       helpPrompt: 'मदद माँगी जा रही है। रद्द करने के लिए दबाएँ।',
       stillPrompt: 'आप तीस सेकंड से हिले नहीं। क्या आप ठीक हैं? रद्द करने के लिए स्क्रीन दबाएँ।',
       callOffer: 'अपने संपर्क को कॉल करने के लिए कहीं भी दबाएँ।',
@@ -487,7 +499,10 @@ const WORDS: Record<Lang, Words> = {
       tooDark: 'கேமராவுக்குத் தெரியவில்லை. எச்சரிக்கைகள் தவறலாம்.',
       cameraClear: 'கேமரா தெளிவு.',
       torchOn: 'இருட்டாக உள்ளது. டார்ச் ஆன்.',
-      alarmOn: 'அலாரம் ஆன். நிறுத்த தட்டவும்.',
+      alarmOn: 'அலாரம் ஆன். நிறுத்த மூன்று முறை தட்டவும்.',
+      bystander: 'அவசரம். இவருக்கு உதவி தேவை. தயவுசெய்து 1 1 2 ஐ அழைக்கவும்.',
+      alarmTwoMore: 'அலாரத்தை நிறுத்த இன்னும் இரண்டு முறை தட்டவும்.',
+      alarmOneMore: 'நிறுத்த இன்னும் ஒரு முறை தட்டவும்.',
       helpPrompt: 'உதவி கேட்கப்படுகிறது. ரத்து செய்ய தட்டவும்.',
       stillPrompt: 'நீங்கள் முப்பது வினாடிகளாக அசையவில்லை. நலமா? ரத்து செய்ய திரையைத் தட்டவும்.',
       callOffer: 'உங்கள் தொடர்புக்கு அழைக்க எங்கும் தட்டவும்.',
@@ -589,7 +604,10 @@ const WORDS: Record<Lang, Words> = {
       tooDark: 'ಕ್ಯಾಮೆರಾಗೆ ಕಾಣುತ್ತಿಲ್ಲ. ಎಚ್ಚರಿಕೆಗಳು ತಪ್ಪಬಹುದು.',
       cameraClear: 'ಕ್ಯಾಮೆರಾ ಸ್ಪಷ್ಟ.',
       torchOn: 'ಕತ್ತಲಾಗಿದೆ. ಟಾರ್ಚ್ ಆನ್ ಆಗಿದೆ.',
-      alarmOn: 'ಅಲಾರಂ ಆನ್. ನಿಲ್ಲಿಸಲು ಒತ್ತಿ.',
+      alarmOn: 'ಅಲಾರಂ ಆನ್. ನಿಲ್ಲಿಸಲು ಮೂರು ಬಾರಿ ಒತ್ತಿ.',
+      bystander: 'ತುರ್ತು ಪರಿಸ್ಥಿತಿ. ಈ ವ್ಯಕ್ತಿಗೆ ಸಹಾಯ ಬೇಕು. ದಯವಿಟ್ಟು 1 1 2 ಗೆ ಕರೆ ಮಾಡಿ.',
+      alarmTwoMore: 'ಅಲಾರಂ ನಿಲ್ಲಿಸಲು ಇನ್ನೂ ಎರಡು ಬಾರಿ ಒತ್ತಿ.',
+      alarmOneMore: 'ನಿಲ್ಲಿಸಲು ಇನ್ನೊಮ್ಮೆ ಒತ್ತಿ.',
       helpPrompt: 'ಸಹಾಯ ಕೇಳಲಾಗುತ್ತಿದೆ. ರದ್ದುಮಾಡಲು ಒತ್ತಿ.',
       stillPrompt: 'ನೀವು ಮೂವತ್ತು ಸೆಕೆಂಡುಗಳಿಂದ ಅಲುಗಾಡಿಲ್ಲ. ಚೆನ್ನಾಗಿದ್ದೀರಾ? ರದ್ದುಮಾಡಲು ಪರದೆಯನ್ನು ಒತ್ತಿ.',
       callOffer: 'ನಿಮ್ಮ ಸಂಪರ್ಕಕ್ಕೆ ಕರೆ ಮಾಡಲು ಎಲ್ಲಿಯಾದರೂ ಒತ್ತಿ.',
@@ -730,6 +748,8 @@ export function describeSentence(
 
 // Which of the translated languages this phone can speak offline right now. English is always offered.
 export async function installedLangs(): Promise<Lang[]> {
+  voiceCache = null // also called on returning from Android's voice screen: voices may have been added
+  void allVoices()
   const found: Lang[] = []
   for (const l of LANGS) {
     if (l === 'en') {
@@ -769,11 +789,45 @@ export function setVoiceFailureHandler(handler: ((lang: Lang, text: string) => v
 
 // How fast the voice talks. Many screen-reader users listen well above normal speed, and a sentence that ends sooner
 // is a warning that arrives sooner.
-export const RATES = { slow: 0.8, normal: 1, fast: 1.4 } as const
+export const RATES = { slowest: 0.7, slow: 0.85, normal: 1, fast: 1.2, fastest: 1.4 } as const
 export type SpeechRate = keyof typeof RATES
 let rate: number = RATES.normal
 export function setSpeechRate(next: SpeechRate) {
   rate = RATES[next]
+}
+// A small range on purpose: at extreme pitch short words like "stop" are harder to catch in traffic.
+export const PITCHES = { low: 0.85, normal: 1, high: 1.15 } as const
+export type SpeechPitch = keyof typeof PITCHES
+let pitch: number = PITCHES.normal
+export function setSpeechPitch(next: SpeechPitch) {
+  pitch = PITCHES[next]
+}
+
+// The chosen voice per language, kept by name: the engine's list changes order when voices are installed.
+type Voice = { voiceURI: string; lang: string; localService: boolean }
+let chosen: Partial<Record<Lang, string>> = {}
+export function setVoices(next: Partial<Record<Lang, string>>) {
+  chosen = next
+}
+let voiceCache: Voice[] | null = null
+async function allVoices(): Promise<Voice[]> {
+  if (voiceCache) return voiceCache
+  try {
+    const list: Voice[] = Capacitor.isNativePlatform()
+      ? (await TextToSpeech.getSupportedVoices()).voices
+      : speechSynthesis.getVoices()
+    if (list.length) voiceCache = list // the browser's list arrives late: an empty one is asked for again
+    return list
+  } catch {
+    return []
+  }
+}
+// The voices that can speak this language with no internet. A network voice would go silent mid-walk.
+export async function voicesFor(lang: Lang): Promise<string[]> {
+  const tag = WORDS[lang].tag.toLowerCase()
+  return (await allVoices())
+    .filter(v => v.localService && v.lang.replace('_', '-').toLowerCase() === tag)
+    .map(v => v.voiceURI)
 }
 
 // Generous upper bound on how long a sentence takes to say: words at 2.6 per second plus engine start-up.
@@ -786,13 +840,20 @@ export async function stopSpeaking(): Promise<void> {
   else speechSynthesis.cancel()
 }
 
+// The plugin takes a voice by its place in the engine's list. A voice that has gone (uninstalled) means the
+// language's default voice, never whichever voice now sits at that place.
+function voiceIndex(lang: Lang): number | undefined {
+  const i = voiceCache?.findIndex(v => v.voiceURI === chosen[lang]) ?? -1
+  return i >= 0 ? i : undefined
+}
+
 async function speakRaw(text: string, lang: Lang): Promise<void> {
   if (Capacitor.isNativePlatform()) {
     try {
       // Android never settles a sentence that was stopped mid-way. The guard settles it anyway, so nothing that
       // waits on speech (the queue, the SOS countdown) can hang forever.
       await Promise.race([
-        TextToSpeech.speak({ text, lang: WORDS[lang].tag, rate, category: 'ambient' }),
+        TextToSpeech.speak({ text, lang: WORDS[lang].tag, rate, pitch, voice: voiceIndex(lang), category: 'ambient' }),
         new Promise<void>(resolve => window.setTimeout(resolve, speakingTimeMs(text))),
       ])
     } catch (err) {
@@ -807,6 +868,9 @@ async function speakRaw(text: string, lang: Lang): Promise<void> {
     const u = new SpeechSynthesisUtterance(text)
     u.lang = WORDS[lang].tag
     u.rate = rate
+    u.pitch = pitch
+    const voice = chosen[lang] && speechSynthesis.getVoices().find(v => v.voiceURI === chosen[lang])
+    if (voice) u.voice = voice
     const guard = window.setTimeout(resolve, speakingTimeMs(text)) // headless engines never fire onend
     u.onend = u.onerror = () => {
       clearTimeout(guard)

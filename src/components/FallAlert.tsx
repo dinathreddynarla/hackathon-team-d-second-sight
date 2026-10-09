@@ -1,4 +1,4 @@
-import { Box, ButtonBase, Dialog, Stack, Typography } from '@mui/material'
+import { Box, Button, ButtonBase, Dialog, Stack, Typography } from '@mui/material'
 
 import type { SosReason, SosState } from '../features/safety/useSos'
 import type { Lang } from '../features/speech/speech'
@@ -14,34 +14,59 @@ type Props = {
   messaged: boolean | null
   // The alarm for people nearby is sounding: the screen then stops it.
   alarm: boolean
+  // The first contact's number, offered to a helper while the alarm sounds.
+  family: string | null
   lang: Lang
   onCancel: () => void
 }
 
 const CANCEL_HEIGHT = 72
+const helperButton = {
+  minHeight: 64,
+  borderRadius: radius.pill,
+  bgcolor: color.white,
+  color: color.cane,
+  fontSize: '1.375rem',
+  fontWeight: 800,
+  '&:hover': { bgcolor: color.white },
+}
 
 // Fills the screen over the main view (which must stay mounted underneath, or detection dies). The whole
 // screen is one button and takes focus, so one tap, or a screen reader's double-tap anywhere, cancels the
 // countdown, stops the message or the calling, or dismisses the result. During a call the phone's own call screen
 // is in front.
-export function FallAlert({ state, reason, secondsLeft, contact, total, messaged, alarm, lang, onCancel }: Props) {
+export function FallAlert({
+  state,
+  reason,
+  secondsLeft,
+  contact,
+  total,
+  messaged,
+  alarm,
+  family,
+  lang,
+  onCancel,
+}: Props) {
   const s = UI[lang].alert
   const counting = state === 'countdown'
-  const title = counting
-    ? reason === 'manual'
-      ? s.helpQuestion
-      : s.question
-    : state === 'sending'
-      ? s.sending
-      : state === 'calling'
-        ? s.calling(contact, total)
-        : state === 'answered'
-          ? s.answered
-          : state === 'noAnswer'
-            ? s.nobody
-            : state === 'failed'
-              ? s.failed
-              : ''
+  // While the alarm sounds the screen speaks to whoever comes to help, not to the user.
+  const title = alarm
+    ? s.emergency
+    : counting
+      ? reason === 'manual'
+        ? s.helpQuestion
+        : s.question
+      : state === 'sending'
+        ? s.sending
+        : state === 'calling'
+          ? s.calling(contact, total)
+          : state === 'answered'
+            ? s.answered
+            : state === 'noAnswer'
+              ? s.nobody
+              : state === 'failed'
+                ? s.failed
+                : ''
   // "If you are OK" answers the question a fall asks; help asked for on purpose, or already going out, is cancelled.
   const asked = counting && reason !== 'manual'
   const action = asked
@@ -61,7 +86,7 @@ export function FallAlert({ state, reason, secondsLeft, contact, total, messaged
       : state === 'sending'
         ? s.cancelSendingLabel
         : action
-  const note = state === 'calling' ? s.callingHint : state === 'failed' ? s.failedHint : alarm ? s.alarmHint : null
+  const note = alarm ? s.emergencyHint : state === 'calling' ? s.callingHint : state === 'failed' ? s.failedHint : null
   // Once the calls have started, whether the message went out is still worth knowing.
   const message = counting || state === 'sending' || messaged === null ? null : messaged ? s.sent : s.notSent
 
@@ -162,7 +187,32 @@ export function FallAlert({ state, reason, secondsLeft, contact, total, messaged
             {message}
           </Typography>
         )}
-        {note && <Typography sx={{ mt: message ? 1 : 2, fontSize: '1.25rem', fontWeight: 600 }}>{note}</Typography>}
+        {note && (
+          <Typography
+            sx={{ mt: message ? 1 : 2, fontSize: alarm ? '1.75rem' : '1.25rem', fontWeight: alarm ? 800 : 600 }}
+          >
+            {note}
+          </Typography>
+        )}
+        {alarm && (
+          // The only parts of this screen that are not "stop": a helper's way to call.
+          <Stack sx={{ mt: 3, gap: 1.5, pointerEvents: 'auto' }}>
+            <Button href="tel:112" variant="contained" size="large" data-testid="call-112" sx={helperButton}>
+              {s.call112}
+            </Button>
+            {family && (
+              <Button
+                href={`tel:${family}`}
+                variant="contained"
+                size="large"
+                data-testid="call-family"
+                sx={helperButton}
+              >
+                {s.callFamily(family)}
+              </Button>
+            )}
+          </Stack>
+        )}
         {/* The warning strip: blister dots across the path. It takes whatever room is left between the words and
             the button, so it can never run behind either. */}
         <Box
