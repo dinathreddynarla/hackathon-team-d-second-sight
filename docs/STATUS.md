@@ -48,8 +48,11 @@ This is how the GPU-returns-nothing bug was found in under 5 minutes.
 9. Telugu without its voice installed: the app switches to English and says the voice is not installed. After installing the voice, Telugu works again.
 10. Speech: a scan sentence is heard to the end, and the fall alert question is heard without warnings over it.
 11. Camera permission refused: the app says the camera did not start.
-12. TalkBack on: check warnings are not read twice (the caption is an `aria-live` region).
+12. TalkBack on: start and stop by double-tapping anywhere (focus rests on Start / Stop); a warning is heard once, not twice; cancel a fall alert by double-tapping anywhere; swipe through Settings and Setup; switch to Telugu and hear the labels in a Telugu voice.
 13. Release APK in airplane mode: check the Network chip says "Network off" (the manifest has no `ACCESS_NETWORK_STATE`).
+14. The redesigned screens on the phone: nothing sits under the status bar or the navigation bar; text is readable in sunlight; frames per second (Settings, Advanced) are no lower than on the previous build.
+15. Back button: closes Settings and Setup; from the main screen it leaves the app.
+16. A native Telugu speaker reads the on-screen labels in `src/ui/strings.ts`.
 
 ## Known gaps
 

@@ -1,30 +1,69 @@
-import { Button, Dialog, DialogContent, DialogTitle, Stack, TextField, Typography } from '@mui/material'
-import { useEffect, useState } from 'react'
+import { Box, Dialog, Stack, TextField, Typography } from '@mui/material'
+import { useEffect, useId, useState } from 'react'
 
 import { isNative, openVoiceInstall, requestSosPermissions } from '../../native/setup'
-import { phrase, speak, type Lang } from '../speech/speech'
+import { color } from '../../theme'
+import { Bubble } from '../../ui/bubbles'
+import { Group, PageHeader, Segmented } from '../../ui/page'
+import { LANGUAGE_NAME, UI } from '../../ui/strings'
+import { useBackToClose } from '../../ui/useBackToClose'
+import { announce, type Lang } from '../speech/speech'
 
-type Props = { open: boolean; lang: Lang; sosNumber: string; onDone: (sosNumber: string) => void }
+type Props = {
+  open: boolean
+  lang: Lang
+  sosNumber: string
+  onLang: (lang: Lang) => void
+  onClose: () => void
+  onDone: (sosNumber: string) => void
+}
+
+// The order matters here, so the steps are numbered. Hidden from the eye's reading order, spoken as "Step 1".
+function StepBadge({ n, label }: { n: number; label: string }) {
+  return (
+    <Box
+      aria-label={label}
+      role="img"
+      sx={{
+        width: 28,
+        height: 28,
+        flexShrink: 0,
+        display: 'grid',
+        placeItems: 'center',
+        borderRadius: '50%',
+        bgcolor: color.paving,
+        color: color.pavingInk,
+        fontSize: '0.9375rem',
+        fontWeight: 800,
+      }}
+    >
+      {n}
+    </Box>
+  )
+}
 
 // One-time setup, the only moment internet is allowed: Android's own TTS screen downloads the voices.
-export function SetupDialog({ open, lang, sosNumber, onDone }: Props) {
+export function SetupDialog({ open, lang, sosNumber, onLang, onClose, onDone }: Props) {
+  const s = UI[lang].setup
+  const titleId = useId()
   const [step, setStep] = useState(0)
   const [number, setNumber] = useState(sosNumber)
+  useBackToClose(open, onClose)
 
   useEffect(() => {
-    if (open) {
-      setStep(0)
-      void speak(phrase('setupIntro', lang), lang)
-    }
+    if (open) setStep(0)
+  }, [open])
+  useEffect(() => {
+    if (open) announce('setupIntro', lang)
   }, [open, lang])
 
   const install = async () => {
     await openVoiceInstall()
     setStep(1)
-    void speak(phrase('voicesInstalled', lang), lang)
+    announce('voicesInstalled', lang)
   }
   const test = () => {
-    void speak(phrase('voiceTest', lang), lang)
+    announce('voiceTest', lang)
     setStep(2)
   }
   const finish = async () => {
@@ -32,42 +71,71 @@ export function SetupDialog({ open, lang, sosNumber, onDone }: Props) {
     // Save first, so setup is complete even if a system prompt is never answered.
     onDone(saved)
     if (saved) await requestSosPermissions()
-    void speak(phrase('setupDone', lang), lang)
+    announce('setupDone', lang)
   }
 
   return (
-    <Dialog open={open} fullScreen>
-      <DialogTitle>One-time setup</DialogTitle>
-      <DialogContent>
-        <Stack spacing={2}>
-          <Typography>1. Install the offline voices. Choose English (India) and Telugu, then come back.</Typography>
-          <Button variant="contained" onClick={() => void install()} disabled={!isNative} sx={{ minHeight: 72 }}>
-            Install voices
-          </Button>
-          {!isNative && <Typography color="text.secondary">Not needed in the browser.</Typography>}
-          <Typography>2. Check the voice works.</Typography>
-          <Button variant="contained" onClick={test} disabled={step < 1 && isNative} sx={{ minHeight: 72 }}>
-            Test voice
-          </Button>
-          <Typography>3. Optional: a phone number to message if a fall is detected.</Typography>
-          <TextField
-            id="sos-number"
-            label="Emergency number"
-            type="tel"
-            value={number}
-            onChange={e => setNumber(e.target.value)}
-            slotProps={{ htmlInput: { inputMode: 'tel' } }}
-          />
-          <Button
-            variant="outlined"
-            onClick={() => void finish()}
-            disabled={step < 2 && isNative}
-            sx={{ minHeight: 72 }}
-          >
-            Done
-          </Button>
-        </Stack>
-      </DialogContent>
+    <Dialog fullScreen open={open} disableRestoreFocus aria-labelledby={titleId}>
+      <Stack data-testid="setup" sx={{ height: '100%', overflowY: 'auto', p: 2, gap: 3 }}>
+        <PageHeader
+          titleId={titleId}
+          title={s.title}
+          closeLabel={UI[lang].close}
+          closeTestId="setup-close"
+          onClose={onClose}
+        />
+
+        <Group title={s.languageStep} badge={<StepBadge n={1} label={s.step(1)} />}>
+          <Box sx={{ p: 1.5 }}>
+            <Segmented
+              label={s.languageStep}
+              value={lang}
+              onChange={onLang}
+              options={[
+                { value: 'en', label: LANGUAGE_NAME.en, testId: 'setup-lang-en' },
+                { value: 'te', label: LANGUAGE_NAME.te, testId: 'setup-lang-te' },
+              ]}
+            />
+          </Box>
+        </Group>
+
+        <Group title={s.voiceStep} badge={<StepBadge n={2} label={s.step(2)} />}>
+          <Stack sx={{ p: 2, gap: 1.5 }}>
+            <Typography sx={{ color: color.chalk }}>{isNative ? s.voiceBody : s.browserNote}</Typography>
+            <Bubble data-testid="setup-install" disabled={!isNative} onClick={() => void install()}>
+              {s.installVoices}
+            </Bubble>
+            <Bubble data-testid="setup-test" disabled={step < 1 && isNative} onClick={test}>
+              {s.testVoice}
+            </Bubble>
+          </Stack>
+        </Group>
+
+        <Group title={s.numberStep} badge={<StepBadge n={3} label={s.step(3)} />}>
+          <Stack sx={{ p: 2, gap: 1.5 }}>
+            <Typography sx={{ color: color.chalk }}>{s.numberBody}</Typography>
+            <TextField
+              id="sos-number"
+              fullWidth
+              label={s.number}
+              type="tel"
+              value={number}
+              onChange={e => setNumber(e.target.value)}
+              slotProps={{ htmlInput: { inputMode: 'tel' } }}
+            />
+          </Stack>
+        </Group>
+
+        <Bubble
+          tone="go"
+          data-testid="setup-done"
+          disabled={step < 2 && isNative}
+          onClick={() => void finish()}
+          sx={{ minHeight: 64, flexShrink: 0, fontSize: '1.25rem', fontWeight: 750 }}
+        >
+          {s.done}
+        </Bubble>
+      </Stack>
     </Dialog>
   )
 }

@@ -1,10 +1,20 @@
-import { Chip, Stack } from '@mui/material'
+import { Box } from '@mui/material'
 import { useEffect, useState } from 'react'
 
-type Props = { model: 'loading' | 'ready' | 'missing'; camera: string; fps: number }
+import type { CameraState } from '../features/camera/useCamera'
+import type { Lang } from '../features/speech/speech'
+import type { ModelState } from '../features/vision/useDetection'
+import { color } from '../theme'
+import { Glass } from '../ui/bubbles'
+import { WarningIcon } from '../ui/icons'
+import { UI } from '../ui/strings'
 
-// The two chips judges look at: the app must say "Network off" and "Model ready" in airplane mode.
-export function StatusBar({ model, camera, fps }: Props) {
+type Props = { model: ModelState; camera: CameraState; lang: Lang }
+
+// One line: what the app is doing, and the offline proof ("Offline", with the model already on the phone).
+// Not a live region: the app speaks its own state, and a screen reader would say it a second time.
+export function StatusBar({ model, camera, lang }: Props) {
+  const s = UI[lang].status
   const [online, setOnline] = useState(navigator.onLine)
   useEffect(() => {
     const update = () => setOnline(navigator.onLine)
@@ -15,12 +25,48 @@ export function StatusBar({ model, camera, fps }: Props) {
       window.removeEventListener('offline', update)
     }
   }, [])
+
+  const problem = camera === 'error' ? s.cameraProblem : model === 'missing' ? s.modelMissing : null
+  const state =
+    problem ??
+    (camera === 'starting' ? s.starting : model === 'loading' ? s.loading : camera === 'running' ? s.watching : s.ready)
+
   return (
-    <Stack direction="row" spacing={1} useFlexGap sx={{ justifyContent: 'center', flexWrap: 'wrap' }}>
-      <Chip label={online ? 'Network on' : 'Network off'} color={online ? 'default' : 'primary'} variant="outlined" />
-      <Chip label={`Model ${model}`} color={model === 'ready' ? 'primary' : 'default'} variant="outlined" />
-      <Chip label={`Camera ${camera}`} variant="outlined" />
-      <Chip label={`${fps} fps`} variant="outlined" />
-    </Stack>
+    <Glass
+      data-testid="status"
+      data-camera={camera}
+      data-model={model}
+      data-network={online ? 'on' : 'off'}
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 1,
+        minHeight: 36,
+        px: 1.75,
+        fontSize: '0.9375rem',
+        fontWeight: 600,
+      }}
+    >
+      {problem ? (
+        <Box sx={{ display: 'inline-flex', color: color.alarm }}>
+          <WarningIcon />
+        </Box>
+      ) : (
+        <Box
+          aria-hidden
+          sx={{
+            width: 10,
+            height: 10,
+            borderRadius: '50%',
+            bgcolor: color.paving,
+            // Solid while watching, a ring while idle: the difference is a shape, not only a colour.
+            ...(camera !== 'running' && { bgcolor: 'transparent', boxShadow: `inset 0 0 0 2px ${color.paving}` }),
+          }}
+        />
+      )}
+      <span>{state}</span>
+      <Box component="span" aria-hidden sx={{ width: '1px', height: 14, bgcolor: 'rgba(255,255,255,0.28)' }} />
+      <span>{online ? s.online : s.offline}</span>
+    </Glass>
   )
 }

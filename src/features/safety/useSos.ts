@@ -2,7 +2,7 @@ import { Geolocation } from '@capacitor/geolocation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { sendSms } from '../../native/setup'
-import { phrase, speak, type Lang } from '../speech/speech'
+import { announce, type Lang } from '../speech/speech'
 
 export type SosState = 'idle' | 'countdown' | 'sending' | 'sent' | 'failed'
 const COUNTDOWN_S = 15
@@ -21,7 +21,7 @@ export function useSos(lang: Lang, sosNumber: string) {
   const send = useCallback(async () => {
     setState('sending')
     if (!sosNumber) {
-      void speak(phrase('noSosNumber', lang), lang)
+      announce('noSosNumber', lang)
       setState('failed')
       return
     }
@@ -33,7 +33,7 @@ export function useSos(lang: Lang, sosNumber: string) {
       /* no fix: send without it */
     }
     const ok = await sendSms(sosNumber, `Second Sight: possible fall detected. I may need help. ${where}`)
-    void speak(phrase(ok ? 'sosSent' : 'sosFailed', lang), lang)
+    announce(ok ? 'sosSent' : 'sosFailed', lang)
     setState(ok ? 'sent' : 'failed')
   }, [lang, sosNumber])
 
@@ -41,7 +41,7 @@ export function useSos(lang: Lang, sosNumber: string) {
     if (state !== 'idle') return
     setState('countdown')
     setSecondsLeft(COUNTDOWN_S)
-    void speak(phrase('sosPrompt', lang), lang)
+    announce('sosPrompt', lang)
     let left = COUNTDOWN_S
     timerRef.current = window.setInterval(() => {
       left--
@@ -56,7 +56,7 @@ export function useSos(lang: Lang, sosNumber: string) {
 
   const cancel = useCallback(() => {
     clear()
-    if (state === 'countdown') void speak(phrase('sosCancelled', lang), lang)
+    if (state === 'countdown') announce('sosCancelled', lang)
     setState('idle')
   }, [state, lang])
 

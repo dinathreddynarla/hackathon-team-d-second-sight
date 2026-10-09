@@ -276,6 +276,12 @@ export function isSpeaking(): boolean {
   return busy
 }
 
+// For what the user must hear now: the answer to their own tap, a failure, the fall alert. It cuts in on whatever is
+// being said. A routine sentence that has to wait is dropped after 1.5 s; these must never be dropped.
+export function announce(key: Phrase, lang: Lang): void {
+  void speak(phrase(key, lang), lang, true)
+}
+
 // What was last announced per object kind, so a static thing is not repeated every few seconds.
 const announced = new Map<string, { side: string; bucket: number; tier: number; t: number; distance: number }>()
 let paused = false
