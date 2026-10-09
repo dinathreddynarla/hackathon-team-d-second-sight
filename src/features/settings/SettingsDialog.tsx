@@ -1,7 +1,7 @@
 import { Box, Collapse, Dialog, Stack, TextField, Typography } from '@mui/material'
 import { useId, useState } from 'react'
 
-import { isNative, openVoiceInstall } from '../../native/setup'
+import { isNative, openAccessibilitySettings, openVoiceInstall } from '../../native/setup'
 import { color } from '../../theme'
 import { Group, PageHeader, Row, Segmented } from '../../ui/page'
 import { LANGUAGE_NAME, UI } from '../../ui/strings'
@@ -11,12 +11,15 @@ import { announce, type Lang } from '../speech/speech'
 type Props = {
   open: boolean
   lang: Lang
+  langs: Lang[]
+  dim: boolean
   sosNumber: string
   k: number
   fps: number
   running: boolean
   onClose: () => void
   onLang: (lang: Lang) => void
+  onDim: (dim: boolean) => void
   onSosNumber: (n: string) => void
   onCalibrate: () => boolean
   onRunSetup: () => void
@@ -28,12 +31,15 @@ type DelegateChoice = 'auto' | 'CPU' | 'GPU'
 export function SettingsDialog({
   open,
   lang,
+  langs,
+  dim,
   sosNumber,
   k,
   fps,
   running,
   onClose,
   onLang,
+  onDim,
   onSosNumber,
   onCalibrate,
   onRunSetup,
@@ -79,10 +85,8 @@ export function SettingsDialog({
               label={s.language}
               value={lang}
               onChange={onLang}
-              options={[
-                { value: 'en', label: LANGUAGE_NAME.en, testId: 'settings-lang-en' },
-                { value: 'te', label: LANGUAGE_NAME.te, testId: 'settings-lang-te' },
-              ]}
+              // Only languages whose voice is installed on this phone; install more below.
+              options={langs.map(l => ({ value: l, label: LANGUAGE_NAME[l], testId: `settings-lang-${l}` }))}
             />
           </Box>
           <Row label={s.testVoice} hint={s.testVoiceHint} testId="test-voice" onClick={() => announce('ready', lang)} />
@@ -121,7 +125,28 @@ export function SettingsDialog({
           <Row label={s.testFall} hint={s.testFallHint} alarm testId="test-fall" onClick={onTestFall} />
         </Group>
 
+        <Group title={s.batteryGroup}>
+          <Row
+            label={s.dim}
+            hint={dim ? s.dimOn : s.dimOff}
+            trailing={dim ? '✓' : ''}
+            testId="dim"
+            onClick={() => onDim(!dim)}
+          />
+        </Group>
+
         <Group title={s.setupGroup}>
+          <Row
+            label={s.shortcut}
+            hint={s.shortcutHint}
+            disabled={!isNative}
+            chevron="right"
+            testId="shortcut"
+            onClick={() => {
+              announce('shortcutHelp', lang)
+              void openAccessibilitySettings()
+            }}
+          />
           <Row label={s.runSetup} chevron="right" testId="run-setup" onClick={onRunSetup} />
         </Group>
 

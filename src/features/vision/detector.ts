@@ -28,7 +28,7 @@ export async function createDetector(delegate: Delegate = preferredDelegate()): 
     baseOptions: { modelAssetPath: MODEL_PATH, delegate },
     runningMode: 'VIDEO' as const,
     scoreThreshold: 0.45,
-    categoryAllowlist: [...TARGET_CLASSES],
+    // No allowlist: warnings still use only TARGET_CLASSES (distance.ts), and "describe" names a few more things.
   }
   try {
     return await ObjectDetector.createFromOptions(fileset, options)

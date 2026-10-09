@@ -62,6 +62,13 @@ const en = {
     testFallHint: 'Starts the 15 second countdown.',
     setupGroup: 'Setup',
     runSetup: 'Run setup again',
+    shortcut: 'Volume-key shortcut',
+    shortcutHint:
+      'Hold both volume keys to open Second Sight with the camera on. Opens Android’s accessibility settings.',
+    batteryGroup: 'Screen and battery',
+    dim: 'Dim the screen while watching',
+    dimOn: 'On. Saves battery. The screen stays on while the camera runs.',
+    dimOff: 'Off. Full brightness while the camera runs.',
     advancedGroup: 'Advanced',
     advanced: 'Detector and speed',
     detector: 'Detector',
@@ -73,10 +80,14 @@ const en = {
     title: 'Set up Second Sight',
     languageStep: 'Choose your language',
     voiceStep: 'Install and test the voice',
-    voiceBody: 'Download English (India) and Telugu, then come back and test.',
+    voiceBody: 'Download your language and English (India), then come back and test.',
     installVoices: 'Install voices',
     browserNote: 'Voices are only installed in the Android app.',
     testVoice: 'Test the voice',
+    shortcutStep: 'Turn on the volume-key shortcut',
+    shortcutBody:
+      'Optional. Then holding both volume keys opens Second Sight with the camera on, even from the lock screen. On vivo and iQOO phones, first turn off Quick action → Flashlight.',
+    openShortcut: 'Open accessibility settings',
     numberStep: 'Add an emergency number',
     numberBody: 'Optional. This number gets a message with your location if a fall is detected.',
     number: 'Emergency phone number',
@@ -146,6 +157,13 @@ const te: Strings = {
     testFallHint: '15 సెకన్ల కౌంట్‌డౌన్ మొదలవుతుంది.',
     setupGroup: 'సెటప్',
     runSetup: 'సెటప్ మళ్ళీ చేయి',
+    shortcut: 'వాల్యూమ్ కీ షార్ట్‌కట్',
+    shortcutHint:
+      'రెండు వాల్యూమ్ కీలు నొక్కి పట్టుకుంటే కెమెరా ఆన్‌తో సెకండ్ సైట్ తెరుచుకుంటుంది. ఆండ్రాయిడ్ యాక్సెసిబిలిటీ సెట్టింగ్స్ తెరుస్తుంది.',
+    batteryGroup: 'స్క్రీన్ మరియు బ్యాటరీ',
+    dim: 'చూస్తున్నప్పుడు స్క్రీన్ తగ్గించు',
+    dimOn: 'ఆన్. బ్యాటరీ ఆదా. కెమెరా నడుస్తున్నంత సేపు స్క్రీన్ ఆన్‌లో ఉంటుంది.',
+    dimOff: 'ఆఫ్. కెమెరా నడుస్తున్నప్పుడు పూర్తి వెలుగు.',
     advancedGroup: 'అడ్వాన్స్‌డ్',
     advanced: 'డిటెక్టర్ మరియు వేగం',
     detector: 'డిటెక్టర్',
@@ -157,10 +175,14 @@ const te: Strings = {
     title: 'సెకండ్ సైట్ సెటప్',
     languageStep: 'మీ భాష ఎంచుకోండి',
     voiceStep: 'వాయిస్ ఇన్‌స్టాల్ చేసి పరీక్షించండి',
-    voiceBody: 'ఇంగ్లీష్ (ఇండియా) మరియు తెలుగు డౌన్‌లోడ్ చేసి, తిరిగి వచ్చి పరీక్షించండి.',
+    voiceBody: 'మీ భాష మరియు ఇంగ్లీష్ (ఇండియా) డౌన్‌లోడ్ చేసి, తిరిగి వచ్చి పరీక్షించండి.',
     installVoices: 'వాయిస్‌లు ఇన్‌స్టాల్ చేయి',
     browserNote: 'వాయిస్‌లు ఆండ్రాయిడ్ యాప్‌లో మాత్రమే ఇన్‌స్టాల్ అవుతాయి.',
     testVoice: 'వాయిస్ పరీక్షించు',
+    shortcutStep: 'వాల్యూమ్ కీ షార్ట్‌కట్ ఆన్ చేయండి',
+    shortcutBody:
+      'ఐచ్ఛికం. తర్వాత రెండు వాల్యూమ్ కీలు నొక్కి పట్టుకుంటే, లాక్ స్క్రీన్ నుండి కూడా, కెమెరా ఆన్‌తో సెకండ్ సైట్ తెరుచుకుంటుంది. వివో, iQOO ఫోన్లలో ముందుగా Quick action → Flashlight ఆఫ్ చేయండి.',
+    openShortcut: 'యాక్సెసిబిలిటీ సెట్టింగ్స్ తెరువు',
     numberStep: 'అత్యవసర నంబర్ జోడించండి',
     numberBody: 'ఐచ్ఛికం. పడిపోయినట్టు గుర్తిస్తే ఈ నంబర్‌కు మీ లొకేషన్‌తో సందేశం వెళ్తుంది.',
     number: 'అత్యవసర ఫోన్ నంబర్',
@@ -169,6 +191,13 @@ const te: Strings = {
   },
 }
 
-export const UI: Record<Lang, Strings> = { en, te }
+// Hindi, Tamil and Kannada speak in their own language; their screen labels are English until translated.
+export const UI: Record<Lang, Strings> = { en, te, hi: en, ta: en, kn: en }
 // Each language's own name, for the control that switches to it.
-export const LANGUAGE_NAME: Record<Lang, string> = { en: 'English', te: 'తెలుగు' }
+export const LANGUAGE_NAME: Record<Lang, string> = {
+  en: 'English',
+  te: 'తెలుగు',
+  hi: 'हिन्दी',
+  ta: 'தமிழ்',
+  kn: 'ಕನ್ನಡ',
+}

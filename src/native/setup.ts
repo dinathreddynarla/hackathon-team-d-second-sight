@@ -6,6 +6,9 @@ type SetupPlugin = {
   sendSms(options: { to: string; text: string }): Promise<void>
   call(options: { to: string }): Promise<void>
   consumeAutostart(): Promise<{ autostart: boolean }>
+  setWatching(options: { on: boolean; dim: boolean }): Promise<void>
+  openAccessibilitySettings(): Promise<void>
+  readText(options: { image: string }): Promise<{ text: string }>
   // Inherited from Capacitor's Plugin class: asks for the SEND_SMS permission declared in SetupPlugin.java.
   requestPermissions(): Promise<unknown>
 }
@@ -85,4 +88,36 @@ export function onAutostart(handler: () => void): () => void {
   window.addEventListener('autostart', collect)
   collect()
   return () => window.removeEventListener('autostart', collect)
+}
+
+// Screen on (and dimmed) only while the camera is watching.
+export async function setWatching(on: boolean, dim: boolean): Promise<void> {
+  if (!isNative) return
+  try {
+    await Setup.setWatching({ on, dim })
+  } catch {
+    /* the default screen timeout applies */
+  }
+}
+
+export async function openAccessibilitySettings(): Promise<boolean> {
+  if (!isNative) return false
+  try {
+    await Setup.openAccessibilitySettings()
+    return true
+  } catch {
+    return false
+  }
+}
+
+// Printed text in a JPEG frame (base64, no data: prefix), or null when nothing is readable or this is a browser.
+export async function readText(jpegBase64: string): Promise<string | null> {
+  if (!isNative) return null
+  try {
+    const { text } = await Setup.readText({ image: jpegBase64 })
+    const clean = text.replace(/\s+/g, ' ').trim()
+    return clean ? clean.slice(0, 160) : null
+  } catch {
+    return null
+  }
 }
