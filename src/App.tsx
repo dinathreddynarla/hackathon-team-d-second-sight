@@ -14,6 +14,7 @@ import { SettingsDialog } from './features/settings/SettingsDialog'
 import { SetupDialog } from './features/settings/SetupDialog'
 import { contactsOf, MAX_CONTACTS, useSettings } from './features/settings/settings'
 import { announce, installedLangs, phrase, setVoiceFailureHandler, speak, type Lang } from './features/speech/speech'
+import { useObstacles } from './features/obstacles/useObstacles'
 import { useSigns } from './features/signs/useSigns'
 import { useDetection } from './features/vision/useDetection'
 import { requestAlertPermissions } from './native/calls'
@@ -47,6 +48,7 @@ export function App() {
   const detection = useDetection(camera.videoRef, canvasRef, running && !alertBusy, lang)
   const { model } = detection
   useSigns(camera.videoRef, running && !alertBusy, lang)
+  useObstacles(camera.videoRef, running && !alertBusy, lang, detection.targetRef)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [setupOpen, setSetupOpen] = useState(!settings.setupDone)
   const lastTapRef = useRef(0)

@@ -24,6 +24,7 @@ const REAL_WIDTH: Record<TargetClass, number> = {
   truck: 2.4,
   dog: 0.4,
   cow: 0.8,
+  obstacle: 1.0, // unused: obstacle distance comes from depth, not box size
 }
 
 // Typical real-world heights in metres. The whole distance estimate rests on these guesses.
@@ -36,6 +37,7 @@ const REAL_HEIGHT: Record<TargetClass, number> = {
   truck: 3.0,
   dog: 0.5,
   cow: 1.4,
+  obstacle: 1.7, // unused
 }
 
 const K_KEY = 'secondsight.k'

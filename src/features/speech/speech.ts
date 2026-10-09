@@ -123,6 +123,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'truck',
       dog: 'dog',
       cow: 'cow',
+      obstacle: 'obstacle',
     },
     plural: {
       person: 'people',
@@ -133,6 +134,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'trucks',
       dog: 'dogs',
       cow: 'cows',
+      obstacle: 'obstacles',
     },
     side: { left: 'left', ahead: 'ahead', right: 'right' },
     range: { oneStep: 'one step', twoSteps: 'two steps', close: 'close', metres: '', far: 'far' },
@@ -216,6 +218,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'లారీ',
       dog: 'కుక్క',
       cow: 'ఆవు',
+      obstacle: 'అడ్డంకి',
     },
     plural: {
       person: 'మంది',
@@ -226,6 +229,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'లారీలు',
       dog: 'కుక్కలు',
       cow: 'ఆవులు',
+      obstacle: 'అడ్డంకులు',
     },
     side: { left: 'ఎడమవైపు', ahead: 'ముందు', right: 'కుడివైపు' },
     range: { oneStep: 'ఒక అడుగు', twoSteps: 'రెండు అడుగులు', close: 'దగ్గరగా', metres: '', far: 'దూరంగా' },
@@ -310,6 +314,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'ट्रक',
       dog: 'कुत्ता',
       cow: 'गाय',
+      obstacle: 'रुकावट',
     },
     plural: {
       person: 'लोग',
@@ -320,6 +325,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'ट्रक',
       dog: 'कुत्ते',
       cow: 'गायें',
+      obstacle: 'रुकावटें',
     },
     side: { left: 'बाईं ओर', ahead: 'सामने', right: 'दाईं ओर' },
     range: { oneStep: 'एक कदम', twoSteps: 'दो कदम', close: 'पास', metres: '', far: 'दूर' },
@@ -403,6 +409,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'லாரி',
       dog: 'நாய்',
       cow: 'மாடு',
+      obstacle: 'தடை',
     },
     plural: {
       person: 'நபர்கள்',
@@ -413,6 +420,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'லாரிகள்',
       dog: 'நாய்கள்',
       cow: 'மாடுகள்',
+      obstacle: 'தடைகள்',
     },
     side: { left: 'இடதுபுறம்', ahead: 'முன்னால்', right: 'வலதுபுறம்' },
     range: { oneStep: 'ஒரு அடி', twoSteps: 'இரண்டு அடி', close: 'அருகில்', metres: '', far: 'தொலைவில்' },
@@ -497,6 +505,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'ಲಾರಿ',
       dog: 'ನಾಯಿ',
       cow: 'ಹಸು',
+      obstacle: 'ಅಡ್ಡಿ',
     },
     plural: {
       person: 'ಜನರು',
@@ -507,6 +516,7 @@ const WORDS: Record<Lang, Words> = {
       truck: 'ಲಾರಿಗಳು',
       dog: 'ನಾಯಿಗಳು',
       cow: 'ಹಸುಗಳು',
+      obstacle: 'ಅಡ್ಡಿಗಳು',
     },
     side: { left: 'ಎಡಕ್ಕೆ', ahead: 'ಮುಂದೆ', right: 'ಬಲಕ್ಕೆ' },
     range: { oneStep: 'ಒಂದು ಹೆಜ್ಜೆ', twoSteps: 'ಎರಡು ಹೆಜ್ಜೆ', close: 'ಹತ್ತಿರ', metres: '', far: 'ದೂರ' },
@@ -582,13 +592,18 @@ function rangeWords(metres: number, lang: Lang): string {
 export function sentence(t: Target, lang: Lang): string {
   const w = WORDS[lang]
   const range = rangeWords(t.distance, lang)
+  const noun = t.count > 1 ? `${t.count} ${w.plural[t.label]}` : w.label[t.label]
+  // "move left" / "move right" / "stop" when something blocks the way ahead (distance.ts, obstacles).
+  const guide = t.guidance ? `, ${w.guide[t.guidance]}` : ''
   if (w.sideFirst)
-    return t.approaching
-      ? `${w.side[t.side]} ${w.label[t.label]} ${w.approaching}, ${range}`
-      : `${w.side[t.side]} ${w.label[t.label]}, ${range}`
-  return t.approaching
-    ? `${w.label[t.label]} ${w.approaching}, ${w.side[t.side]}, ${range}`
-    : `${w.label[t.label]} ${w.side[t.side]}, ${range}`
+    return (
+      (t.approaching ? `${w.side[t.side]} ${noun} ${w.approaching}, ${range}` : `${w.side[t.side]} ${noun}, ${range}`) +
+      guide
+    )
+  return (
+    (t.approaching ? `${noun} ${w.approaching}, ${w.side[t.side]}, ${range}` : `${noun} ${w.side[t.side]}, ${range}`) +
+    guide
+  )
 }
 
 // Asked-for summary: groups by object and side with the nearest range, at most three groups, "and N more" for the rest.
