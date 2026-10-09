@@ -19,7 +19,7 @@ and speaks only what matters: the nearest thing, whether it is approaching, in t
 phone vibrates. No internet is used while it runs; the final APK does not even hold the INTERNET permission.
 
 **Who it is for.** Blind and low-vision pedestrians who already use a cane, starting in Telangana. Secondary users:
-their families, who receive an SOS SMS with a maps link if a fall is detected.
+their families, who receive an SOS SMS with a maps link, then a phone call, if a fall is detected or help is asked for.
 
 **What it deliberately does not do.** It does not see behind the user, does not know stairs, poles or potholes
 (not in the model), and does not navigate. These are stated limits, not hidden ones.
@@ -38,7 +38,7 @@ their families, who receive an SOS SMS with a maps link if a fall is detected.
 | Offline guarantee      | Model and WebAssembly runtime inside the APK; no CDN, no analytics; main manifest has no INTERNET permission (a debug-only manifest adds it for live reload); release APK signed with the debug key so it installs anywhere                                              | `aapt dump permissions` on both APKs; installed package shows no INTERNET |
 | One-time setup         | First launch: "Install voices" opens Android's own Install voice data screen (the only moment internet is used, by Google's app, not ours), "Test voice", optional emergency number. Never shown again                                                                   | Phone: voices installed, test voice spoke                                 |
 | Settings               | Language, calibrate K with a person at 5 m, install voices, test voice, emergency number, run setup again, test fall alert, CPU/GPU switch for debugging                                                                                                                 | Browser and phone                                                         |
-| Fall detection and SOS | Accelerometer impact above about 2.5 g, then 4 s of stillness and the phone not upright → "Are you okay?" with a 15 s countdown, vibration every second, a full-screen cancel button → SMS to the saved number with a Google Maps link from GPS (GPS works without data) | Compiled and wired; cushion test and SMS pending                          |
+| Fall detection and SOS | Impact above about 2.5 g then 4 s still and not upright, or a collapse then 30 s lying still → "Are you okay?" with a 15 or 30 s countdown and a full-screen cancel → SMS with a Google Maps link to up to three contacts, then calls to them in order until one answers | APK compiles; calls simulated; phone run pending                          |
 | Live debugging         | The page exposes `window.__ss`; with the phone on USB the WebView is reachable through Chrome DevTools Protocol, so the camera frame, detections and delegate can be read from the Mac while the app runs                                                                | Used to find the GPU bug in minutes                                       |
 
 ## How it works
@@ -64,13 +64,14 @@ makes single numbers dishonest.
 - Speaks distance and direction, warns when something approaches, vibrates under 3 m
 - Describe what is around: double-tap the view, press volume-up twice, or use the volume-key shortcut while watching. Speaks the warning objects with where and how far, other recognisable things by name (chair, bench, traffic light, stop sign, …), and any printed English text in view (read on the phone, offline)
 - Speaks English, Telugu, Hindi, Tamil and Kannada; the app offers only the languages whose voice is installed on the phone
-- Fall detection, two rules: an impact then stillness (15 s to cancel), or a collapse then 30 s lying still (30 s to cancel); then an SOS SMS with a maps link, then "tap anywhere to call your contact"
-- **Open and start without finding anything:** assign Second Sight to Android's accessibility shortcut, then hold both volume keys for 3 s, even from the lock screen. The camera starts by itself
-- Ask for help on purpose: hold volume-down for 2 s (10 s to cancel)
-- Spoken status: battery at 20% and 10% with the real level, "Camera blocked. Clear the lens.", "Camera can't see. Warnings may be missed."
+- Fall detection, two rules: an impact then stillness (15 s to cancel), or a collapse then 30 s lying still (30 s to cancel); then an SOS SMS with a maps link to up to three emergency contacts, then phone calls to them in order until one answers
+- **Open and start without finding anything:** assign Second Sight to Android's accessibility shortcut, then hold both volume keys for 3 s (on vivo/iQOO phones: once the phone is unlocked). The camera starts by itself
+- Ask for help on purpose: hold volume-down for 2 s, or press Help on the screen (10 s to cancel)
+- Spoken status: battery at 20% and 10% with the real level, "Camera blocked. Clear the lens.", "Camera can't see. Warnings may be missed." (too dark, or a washed-out picture: heavy rain, smoke, fog), "Detection is slow. Warnings may be late."
+- "Crowd ahead." when four or more people stay in view
 - Screen stays on and dims to 5% while watching (saves battery); a quiet street drops detection from 10 to about 3 checks a second
 - Works in flight mode after a one-time setup (voices are downloaded by Android's own text-to-speech settings).
-  The fall SOS is the exception: an SMS needs mobile signal, so it cannot send in flight mode
+  The SOS is the exception: the SMS and the calls need mobile signal, so they cannot go out in flight mode
 - One large Start / Stop button fills the bottom of the screen and confirms by voice, so it is found by touch alone
 
 ## Business case
@@ -96,8 +97,8 @@ _To be written._
 1. Download `second-sight.apk` from the Releases page (built with `pnpm apk:release`, no INTERNET permission).
 2. On the phone open the file, allow "install unknown apps" when asked. If Play Protect warns, choose "Install anyway".
 3. Optional, recommended: Settings → Accessibility → Second Sight → turn on its shortcut (choose "volume keys"). Holding both volume keys then opens it with the camera on.
-4. Open Second Sight. One-time setup: tap Install voices, download English (India) and Telugu (needs Wi-Fi once), tap Test voice, Done. If you enter an emergency number, allow SMS and location when asked.
-5. Allow the camera. Detection and speech work with airplane mode on. Keep it off if you rely on the fall SOS, which needs mobile signal to send its SMS.
+4. Open Second Sight. One-time setup: tap Install voices, download your language and English (India) (needs Wi-Fi once), tap Test voice, Done. If you enter an emergency contact, allow SMS, location, phone calls and the call log when asked.
+5. Allow the camera. Detection and speech work with airplane mode on. Keep it off if you rely on the SOS, which needs mobile signal for its SMS and its calls.
 6. Hang the phone at chest height, camera facing forward. Tap the large button at the bottom to start, and again to stop. Double-tap the view to scan once.
 
 Tested on: iQOO Neo 10 (Android 16). Needs Android 7 or newer and a WebView from 2021 or later.
@@ -110,7 +111,7 @@ src/
   theme.ts                        colours, shapes and type scale (see DESIGN.md)
   components/StatusBar.tsx        status bubble: what the app is doing, and Offline / Network on (the offline proof)
   components/LaneStrip.tsx        left / ahead / right: where the thing last warned about is
-  components/FallAlert.tsx        full-screen fall alert; the whole screen cancels
+  components/FallAlert.tsx        full-screen alert: countdown, message, calls; the whole screen cancels or stops
   ui/                             bubble controls, icons, page pieces, English and Telugu labels, Back-to-close
   features/camera/useCamera.ts    back camera, releases on hide, restarts on return
   features/vision/detector.ts     MediaPipe setup, class allowlist, CPU/GPU choice
@@ -119,13 +120,16 @@ src/
   features/speech/speech.ts       English and Telugu tables, sentence builders, cooldowns, TTS
   features/settings/              persisted settings, first-run setup dialog, settings dialog
   features/safety/fall.ts         accelerometer fall rule
-  features/safety/useSos.ts       countdown, GPS, SMS
+  features/safety/useSos.ts       countdown, GPS, SMS to every contact, then calls them in turn
+  features/safety/useSceneAlerts.ts  crowd ahead, detection slow: said in a gap, never over a warning
   native/setup.ts                 bridge to the Java plugin (voice install screen, SMS, volume key event)
+  native/calls.ts                 bridge to the calling plugin; a stand-in call for demos and checks
 public/models/                    efficientdet_lite0.tflite
 public/vendor/wasm/               MediaPipe runtime (copied by `pnpm vendor`, git-ignored)
 android/app/src/main/java/com/teamd/secondsight/
   MainActivity.java               keep screen on, volume-up double press
   SetupPlugin.java                INSTALL_TTS_DATA intent, SmsManager
+  EmergencyCallPlugin.java        places one call, waits for it to end, reads the call log to see if it was answered
 android/app/src/debug/AndroidManifest.xml   INTERNET only for debug builds (live reload)
 docs/STATUS.md                    current state, live-debug recipe, pending phone tests
 docs/PLAN.md                      links to the build guide and the 3D build map
@@ -161,6 +165,18 @@ Branches and merges: every change goes through a pull request; only the reposito
   and someone left slumped rather than lying down is missed.
 - The SOS says "Help message sent" without confirmation that the SMS left the phone. Confirming delivery needs a
   sent-result receiver in `SetupPlugin.java`.
+- Emergency calls have not been run on a phone. The sequence is checked in a browser with the calls simulated, and
+  the APK compiles; a real call needs an Android phone with a SIM.
+- A call counts as answered when the call log shows a duration above zero. A voicemail that picks up looks the same,
+  and the app then stops. An app cannot tell ringing from talking, so an unanswered call lasts until the network ends
+  it (30 to 45 s) before the next contact is tried.
+- A false fall alarm that is not cancelled now texts and phones up to three people.
+- Calling needs `CALL_PHONE`, `READ_PHONE_STATE` and `READ_CALL_LOG`. Google Play restricts the first and last to a
+  few kinds of app, so this works for an APK installed by hand and would need another approach for a Play Store release.
+- Rain, puddles and smoke are not recognised: the model has no such classes. A washed-out picture is spoken as
+  "Camera can't see", from a contrast measure with untuned thresholds; it cannot tell rain from fog from a pale wall,
+  and a wet road is not detected at all.
+- "Crowd ahead" counts the people the detector finds. It undercounts in a dense crowd, so it never says a number.
 - Outdoor calibration and the accuracy table (3, 5, 10 m) are pending daylight.
 
 ## Team

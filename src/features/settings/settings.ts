@@ -2,17 +2,28 @@ import { useCallback, useState } from 'react'
 
 import type { Lang } from '../speech/speech'
 
+export const MAX_CONTACTS = 3
+// sosNumbers is one slot per contact, in calling order; an empty slot is an empty string.
 // dim: screen at 5% brightness while watching. The user cannot see it; it is the biggest battery saving there is.
-export type Settings = { lang: Lang; sosNumber: string; setupDone: boolean; dim: boolean }
+export type Settings = { lang: Lang; sosNumbers: string[]; setupDone: boolean; dim: boolean }
 const KEY = 'secondsight.settings'
-const DEFAULTS: Settings = { lang: 'en', sosNumber: '', setupDone: false, dim: true }
+const DEFAULTS: Settings = { lang: 'en', sosNumbers: [], setupDone: false, dim: true }
 
 function load(): Settings {
   try {
-    return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) ?? '{}') }
+    const { sosNumber, sosNumbers, ...rest } = JSON.parse(localStorage.getItem(KEY) ?? '{}')
+    // Before there could be three contacts there was one, saved as sosNumber. It becomes the first.
+    const saved: unknown[] = Array.isArray(sosNumbers) ? sosNumbers : sosNumber ? [sosNumber] : []
+    const numbers = saved.filter((n): n is string => typeof n === 'string').slice(0, MAX_CONTACTS)
+    return { ...DEFAULTS, ...rest, sosNumbers: numbers }
   } catch {
     return DEFAULTS
   }
+}
+
+// The contacts to call, in order: the filled slots only.
+export function contactsOf(sosNumbers: string[]): string[] {
+  return sosNumbers.map(n => n.trim()).filter(Boolean)
 }
 
 export function useSettings() {

@@ -27,6 +27,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(SetupPlugin.class);
+        registerPlugin(EmergencyCallPlugin.class);
         super.onCreate(savedInstanceState);
         // Screen-on is set only while watching (SetupPlugin.setWatching), so an idle app does not drain the battery.
         handleAutostart(getIntent(), false);

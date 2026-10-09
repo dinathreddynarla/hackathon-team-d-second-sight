@@ -8,21 +8,16 @@ import { StatusBar } from './components/StatusBar'
 import { useCamera } from './features/camera/useCamera'
 import { watchFalls } from './features/safety/fall'
 import { useBatteryAlerts, useCameraViewAlerts } from './features/safety/useDeviceAlerts'
+import { useCrowdAlerts, useDetectionSpeedAlerts } from './features/safety/useSceneAlerts'
 import { useSos } from './features/safety/useSos'
 import { SettingsDialog } from './features/settings/SettingsDialog'
 import { SetupDialog } from './features/settings/SetupDialog'
-import { useSettings } from './features/settings/settings'
+import { contactsOf, MAX_CONTACTS, useSettings } from './features/settings/settings'
 import { announce, installedLangs, phrase, setVoiceFailureHandler, speak, type Lang } from './features/speech/speech'
 import { useSigns } from './features/signs/useSigns'
 import { useDetection } from './features/vision/useDetection'
-import {
-  isNative,
-  onAutostart,
-  onVolumeDouble,
-  onVolumeDownHold,
-  requestSosPermissions,
-  setWatching,
-} from './native/setup'
+import { requestAlertPermissions } from './native/calls'
+import { isNative, onAutostart, onVolumeDouble, onVolumeDownHold, setWatching } from './native/setup'
 import { color, radius } from './theme'
 import { Bubble, Glass } from './ui/bubbles'
 import { GlobeIcon, ScanIcon, SettingsIcon, WearFigure } from './ui/icons'
@@ -46,9 +41,9 @@ export function App() {
   const camera = useCamera()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const running = camera.state === 'running'
-  const sos = useSos(lang, settings.sosNumber)
-  // Detection keeps quiet while the fall alert is asking or sending, and resumes once the result is showing.
-  const alertBusy = sos.state === 'countdown' || sos.state === 'sending'
+  const sos = useSos(lang, settings.sosNumbers)
+  // Detection keeps quiet while the alert is asking, sending or calling, and resumes once the result is showing.
+  const alertBusy = sos.state === 'countdown' || sos.state === 'sending' || sos.state === 'calling'
   const detection = useDetection(camera.videoRef, canvasRef, running && !alertBusy, lang)
   const { model } = detection
   useSigns(camera.videoRef, running && !alertBusy, lang)
@@ -145,12 +140,17 @@ export function App() {
     [settings.setupDone]
   )
 
-  // Asking for help on purpose: hold volume-down for 2 s, whether or not the camera is running.
+  // Asking for help on purpose: hold volume-down for 2 s, or the Help button, whether or not the camera is running.
   useEffect(() => onVolumeDownHold(() => startSos('manual')), [startSos])
 
-  // What the user cannot see: a low battery, a covered lens, a scene too dark to read.
-  useBatteryAlerts(langRef)
+  // What the user cannot see: a low battery, a covered lens, a scene too dark or too washed out to read. The battery
+  // waits while the alert is up, so it cannot talk over "Are you okay?" or the calls.
+  useBatteryAlerts(langRef, sos.state !== 'idle')
   useCameraViewAlerts(camera.videoRef, running && !alertBusy, langRef)
+  // And what the app can tell about its own work: a crowd in view, and detection that has fallen behind.
+  const watching = running && !alertBusy && model === 'ready'
+  useCrowdAlerts(detection.people, detection.scannedAt, watching, langRef)
+  useDetectionSpeedAlerts(detection.fps, detection.lastTickAt, watching, langRef)
 
   // Whenever the main screen is what the user is on, focus rests on Start / Stop, so a screen reader's
   // double-tap anywhere starts or stops without hunting for the control.
@@ -161,10 +161,21 @@ export function App() {
 
   return (
     <Stack component="main" sx={{ height: '100%', p: 2, gap: 1.5 }}>
-      <Stack direction="row" sx={{ alignItems: 'center', minHeight: 48 }}>
-        <Typography variant="h1" sx={{ flex: 1 }}>
+      <Stack direction="row" sx={{ alignItems: 'center', minHeight: 48, gap: 1 }}>
+        <Typography variant="h1" sx={{ flex: 1, minWidth: 0 }}>
           {s.appName}
         </Typography>
+        {/* The same as holding volume-down, for someone who can find it on the screen: a countdown first, so a
+            stray touch can be cancelled. */}
+        <Bubble
+          tone="stop"
+          aria-label={s.helpLabel}
+          data-testid="help"
+          onClick={() => sos.start('manual')}
+          sx={{ minHeight: 48, px: 2.25, flexShrink: 0, fontWeight: 750 }}
+        >
+          {s.help}
+        </Bubble>
         <Bubble
           aria-label={s.settings}
           data-testid="settings-open"
@@ -279,7 +290,7 @@ export function App() {
           aria-label={s.scanLabel}
           disabled={!running || model !== 'ready'}
           onClick={() => void scan()}
-          sx={{ flex: 1 }}
+          sx={{ flex: 1, px: 1.5 }}
         >
           <ScanIcon />
           {s.scan}
@@ -288,7 +299,7 @@ export function App() {
           data-testid="lang-toggle"
           aria-label={s.switchLanguage}
           onClick={() => changeLang(nextLang)}
-          sx={{ flex: 1 }}
+          sx={{ flex: 1, px: 1.5 }}
         >
           <GlobeIcon />
           {s.languageName}
@@ -320,11 +331,11 @@ export function App() {
       <SetupDialog
         open={setupOpen}
         lang={lang}
-        sosNumber={settings.sosNumber}
+        sosNumber={settings.sosNumbers[0] ?? ''}
         onLang={changeLang}
         onClose={() => setSetupOpen(false)}
-        onDone={sosNumber => {
-          update({ sosNumber, setupDone: true })
+        onDone={first => {
+          update({ sosNumbers: [first, ...settings.sosNumbers.slice(1)], setupDone: true })
           setSetupOpen(false)
         }}
       />
@@ -334,17 +345,23 @@ export function App() {
         langs={langs}
         dim={settings.dim}
         onDim={dim => update({ dim })}
-        sosNumber={settings.sosNumber}
+        sosNumbers={settings.sosNumbers}
         k={detection.k}
         fps={detection.fps}
         running={running}
         onClose={() => {
           setSettingsOpen(false)
-          // Ask for SMS and location now, while someone can answer, not when a fall has already happened.
-          if (settings.sosNumber) void requestSosPermissions()
+          // Ask for the permissions now, while someone can answer, not when a fall has already happened.
+          if (contactsOf(settings.sosNumbers).length > 0) void requestAlertPermissions()
         }}
         onLang={changeLang}
-        onSosNumber={n => update({ sosNumber: n })}
+        onSosNumber={(slot, number) =>
+          update({
+            sosNumbers: Array.from({ length: MAX_CONTACTS }, (_, i) =>
+              i === slot ? number : (settings.sosNumbers[i] ?? '')
+            ),
+          })
+        }
         onCalibrate={detection.calibrate}
         onRunSetup={() => {
           setSettingsOpen(false)
@@ -359,10 +376,11 @@ export function App() {
         state={sos.state}
         reason={sos.reason}
         secondsLeft={sos.secondsLeft}
+        contact={sos.contact}
+        total={sos.total}
+        messaged={sos.messaged}
         lang={lang}
-        canCall={sos.canCall}
         onCancel={sos.cancel}
-        onCall={sos.call}
       />
     </Stack>
   )

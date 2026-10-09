@@ -13,14 +13,14 @@ type Props = {
   lang: Lang
   langs: Lang[]
   dim: boolean
-  sosNumber: string
+  sosNumbers: string[]
   k: number
   fps: number
   running: boolean
   onClose: () => void
   onLang: (lang: Lang) => void
   onDim: (dim: boolean) => void
-  onSosNumber: (n: string) => void
+  onSosNumber: (slot: number, number: string) => void
   onCalibrate: () => boolean
   onRunSetup: () => void
   onTestFall: () => void
@@ -33,7 +33,7 @@ export function SettingsDialog({
   lang,
   langs,
   dim,
-  sosNumber,
+  sosNumbers,
   k,
   fps,
   running,
@@ -111,17 +111,23 @@ export function SettingsDialog({
         </Group>
 
         <Group title={s.emergencyGroup}>
-          <Box sx={{ p: 2 }}>
-            <TextField
-              id="settings-sos-number"
-              fullWidth
-              label={s.number}
-              type="tel"
-              value={sosNumber}
-              onChange={e => onSosNumber(e.target.value)}
-              slotProps={{ htmlInput: { inputMode: 'tel' } }}
-            />
-          </Box>
+          <Stack sx={{ p: 2, gap: 1.5 }}>
+            <Typography variant="body2" sx={{ color: color.chalk }}>
+              {s.contactsHint}
+            </Typography>
+            {s.contact.map((label, slot) => (
+              <TextField
+                key={slot}
+                id={`settings-contact-${slot + 1}`}
+                fullWidth
+                label={label}
+                type="tel"
+                value={sosNumbers[slot] ?? ''}
+                onChange={e => onSosNumber(slot, e.target.value)}
+                slotProps={{ htmlInput: { inputMode: 'tel' } }}
+              />
+            ))}
+          </Stack>
           <Row label={s.testFall} hint={s.testFallHint} alarm testId="test-fall" onClick={onTestFall} />
         </Group>
 

@@ -54,8 +54,19 @@ export type Phrase =
   | 'cameraBlocked'
   | 'tooDark'
   | 'cameraClear'
+  | 'detectionSlow'
+  | 'crowded'
   | 'helpPrompt'
   | 'stillPrompt'
+  | 'calling1'
+  | 'calling2'
+  | 'calling3'
+  | 'noAnswer'
+  | 'callEnded'
+  | 'nobodyAnswered'
+  | 'callFailed'
+  | 'callingStopped'
+  | 'waitingForCall'
   | 'callOffer'
   | 'shortcutHelp'
 
@@ -139,11 +150,11 @@ const WORDS: Record<Lang, Words> = {
       voicesInstalled: 'Now tap test voice.',
       voiceTest: 'The voice works. Setup done.',
       setupDone: 'Setup done. No internet is needed from now on.',
-      sosPrompt: 'Are you okay? Tap the screen to cancel, or help will be messaged in 15 seconds.',
-      sosSent: 'Help message sent with your location.',
+      sosPrompt: 'Are you okay? Tap the screen to cancel, or your contacts will be messaged and called in 15 seconds.',
+      sosSent: 'Help message sent.',
       sosFailed: 'Could not send the help message.',
       sosCancelled: 'Cancelled.',
-      noSosNumber: 'No emergency number saved. Add one in settings.',
+      noSosNumber: 'No emergency contact saved. Add one in settings.',
       cameraFailed: 'Camera did not start. Check the camera permission.',
       modelMissing: 'Detection could not start. Reinstall the app.',
       voiceMissing: 'That voice is not installed. Open settings and tap install offline voices.',
@@ -153,8 +164,19 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'Camera blocked. Clear the lens.',
       tooDark: "Camera can't see. Warnings may be missed.",
       cameraClear: 'Camera clear.',
+      detectionSlow: 'Detection is slow. Warnings may be late.',
+      crowded: 'Crowd ahead.',
       helpPrompt: 'Asking for help. Tap to cancel.',
       stillPrompt: 'You have not moved for 30 seconds. Are you okay? Tap the screen to cancel.',
+      calling1: 'Calling contact one.',
+      calling2: 'Calling contact two.',
+      calling3: 'Calling contact three.',
+      noAnswer: 'No answer.',
+      callEnded: 'Calls finished.',
+      nobodyAnswered: 'Nobody answered.',
+      callFailed: 'Could not call.',
+      callingStopped: 'Stopped calling.',
+      waitingForCall: 'Waiting for the current call to end.',
       callOffer: 'Tap anywhere to call your contact.',
       shortcutHelp:
         'Find Second Sight in this list, open it, and turn on its shortcut. Then holding both volume keys opens the app.',
@@ -222,11 +244,11 @@ const WORDS: Record<Lang, Words> = {
       voiceTest: 'వాయిస్ పనిచేస్తోంది. సెటప్ పూర్తయింది.',
       setupDone: 'సెటప్ పూర్తయింది. ఇకపై ఇంటర్నెట్ అవసరం లేదు.',
       sosPrompt:
-        'మీరు బాగున్నారా? రద్దు చేయడానికి స్క్రీన్ నొక్కండి, లేకపోతే పదిహేను సెకన్లలో సహాయం కోసం సందేశం వెళ్తుంది.',
-      sosSent: 'మీ లొకేషన్‌తో సహాయ సందేశం పంపబడింది.',
+        'మీరు బాగున్నారా? రద్దు చేయడానికి స్క్రీన్ నొక్కండి, లేకపోతే పదిహేను సెకన్లలో మీ కాంటాక్ట్‌లకు సందేశం, కాల్ వెళ్తాయి.',
+      sosSent: 'సహాయ సందేశం పంపబడింది.',
       sosFailed: 'సహాయ సందేశం పంపలేకపోయాం.',
       sosCancelled: 'రద్దు చేయబడింది.',
-      noSosNumber: 'అత్యవసర నంబర్ సేవ్ కాలేదు. సెట్టింగ్స్‌లో జోడించండి.',
+      noSosNumber: 'అత్యవసర కాంటాక్ట్ సేవ్ కాలేదు. సెట్టింగ్స్‌లో జోడించండి.',
       cameraFailed: 'కెమెరా ప్రారంభం కాలేదు. కెమెరా అనుమతి ఇవ్వండి.',
       modelMissing: 'డిటెక్షన్ ప్రారంభం కాలేదు.',
       voiceMissing: 'ఆ వాయిస్ ఇన్‌స్టాల్ కాలేదు. సెట్టింగ్స్ తెరిచి, ఇన్‌స్టాల్ ఆఫ్‌లైన్ వాయిసెస్ నొక్కండి.',
@@ -236,8 +258,19 @@ const WORDS: Record<Lang, Words> = {
       cameraBlocked: 'కెమెరాకు అడ్డు ఉంది. లెన్స్ శుభ్రం చేయండి.',
       tooDark: 'కెమెరాకు కనిపించడం లేదు. హెచ్చరికలు తప్పిపోవచ్చు.',
       cameraClear: 'కెమెరా స్పష్టం.',
+      detectionSlow: 'డిటెక్షన్ నెమ్మదిగా ఉంది. హెచ్చరికలు ఆలస్యం కావచ్చు.',
+      crowded: 'ముందు రద్దీ ఉంది.',
       helpPrompt: 'సహాయం అడుగుతోంది. రద్దు చేయడానికి నొక్కండి.',
       stillPrompt: 'మీరు ముప్పై సెకన్లుగా కదలలేదు. బాగున్నారా? రద్దు చేయడానికి స్క్రీన్ నొక్కండి.',
+      calling1: 'మొదటి కాంటాక్ట్‌కు కాల్ చేస్తున్నాం.',
+      calling2: 'రెండవ కాంటాక్ట్‌కు కాల్ చేస్తున్నాం.',
+      calling3: 'మూడవ కాంటాక్ట్‌కు కాల్ చేస్తున్నాం.',
+      noAnswer: 'సమాధానం లేదు.',
+      callEnded: 'కాల్‌లు ముగిశాయి.',
+      nobodyAnswered: 'ఎవరూ సమాధానం ఇవ్వలేదు.',
+      callFailed: 'కాల్ చేయలేకపోయాం.',
+      callingStopped: 'కాల్ చేయడం ఆపేశాం.',
+      waitingForCall: 'ప్రస్తుత కాల్ ముగిసే వరకు వేచి ఉన్నాం.',
       callOffer: 'మీ కాంటాక్ట్‌కు కాల్ చేయడానికి ఎక్కడైనా నొక్కండి.',
       shortcutHelp:
         'ఈ జాబితాలో సెకండ్ సైట్ తెరిచి దాని షార్ట్‌కట్ ఆన్ చేయండి. తర్వాత రెండు వాల్యూమ్ బటన్లు నొక్కి పట్టుకుంటే యాప్ తెరుచుకుంటుంది.',
@@ -305,7 +338,7 @@ const WORDS: Record<Lang, Words> = {
       voiceTest: 'आवाज़ काम कर रही है। सेटअप पूरा।',
       setupDone: 'सेटअप पूरा। अब इंटरनेट की ज़रूरत नहीं।',
       sosPrompt: 'क्या आप ठीक हैं? रद्द करने के लिए स्क्रीन दबाएँ, नहीं तो पंद्रह सेकंड में मदद का संदेश जाएगा।',
-      sosSent: 'आपकी लोकेशन के साथ मदद का संदेश भेज दिया गया।',
+      sosSent: 'मदद का संदेश भेज दिया गया।',
       sosFailed: 'मदद का संदेश नहीं भेजा जा सका।',
       sosCancelled: 'रद्द किया गया।',
       noSosNumber: 'आपातकालीन नंबर सेव नहीं है। सेटिंग्स में जोड़ें।',
@@ -323,6 +356,17 @@ const WORDS: Record<Lang, Words> = {
       callOffer: 'अपने संपर्क को कॉल करने के लिए कहीं भी दबाएँ।',
       shortcutHelp:
         'इस सूची में सेकंड साइट खोलें और उसका शॉर्टकट चालू करें। फिर दोनों वॉल्यूम बटन दबाकर रखने से ऐप खुल जाएगा।',
+      detectionSlow: 'पहचान धीमी है। चेतावनियाँ देर से आ सकती हैं।',
+      crowded: 'आगे भीड़ है।',
+      calling1: 'पहले संपर्क को कॉल कर रहे हैं।',
+      calling2: 'दूसरे संपर्क को कॉल कर रहे हैं।',
+      calling3: 'तीसरे संपर्क को कॉल कर रहे हैं।',
+      noAnswer: 'जवाब नहीं मिला।',
+      callEnded: 'कॉल पूरे हुए।',
+      nobodyAnswered: 'किसी ने जवाब नहीं दिया।',
+      callFailed: 'कॉल नहीं हो सका।',
+      callingStopped: 'कॉल करना बंद किया।',
+      waitingForCall: 'चल रहे कॉल के खत्म होने का इंतज़ार है।',
     },
   },
   ta: {
@@ -388,7 +432,7 @@ const WORDS: Record<Lang, Words> = {
       setupDone: 'அமைப்பு முடிந்தது. இனி இணையம் தேவையில்லை.',
       sosPrompt:
         'நீங்கள் நலமா? ரத்து செய்ய திரையைத் தட்டவும், இல்லையெனில் பதினைந்து வினாடிகளில் உதவிச் செய்தி அனுப்பப்படும்.',
-      sosSent: 'உங்கள் இருப்பிடத்துடன் உதவிச் செய்தி அனுப்பப்பட்டது.',
+      sosSent: 'உதவிச் செய்தி அனுப்பப்பட்டது.',
       sosFailed: 'உதவிச் செய்தியை அனுப்ப முடியவில்லை.',
       sosCancelled: 'ரத்து செய்யப்பட்டது.',
       noSosNumber: 'அவசர எண் சேமிக்கப்படவில்லை. அமைப்புகளில் சேர்க்கவும்.',
@@ -406,6 +450,17 @@ const WORDS: Record<Lang, Words> = {
       callOffer: 'உங்கள் தொடர்புக்கு அழைக்க எங்கும் தட்டவும்.',
       shortcutHelp:
         'இந்தப் பட்டியலில் செகண்ட் சைட்டைத் திறந்து அதன் ஷார்ட்கட்டை இயக்கவும். பிறகு இரண்டு ஒலி பொத்தான்களையும் அழுத்திப் பிடித்தால் செயலி திறக்கும்.',
+      detectionSlow: 'கண்டறிதல் மெதுவாக உள்ளது. எச்சரிக்கைகள் தாமதமாகலாம்.',
+      crowded: 'முன்னால் கூட்டம்.',
+      calling1: 'முதல் தொடர்பை அழைக்கிறோம்.',
+      calling2: 'இரண்டாவது தொடர்பை அழைக்கிறோம்.',
+      calling3: 'மூன்றாவது தொடர்பை அழைக்கிறோம்.',
+      noAnswer: 'பதில் இல்லை.',
+      callEnded: 'அழைப்புகள் முடிந்தன.',
+      nobodyAnswered: 'யாரும் பதிலளிக்கவில்லை.',
+      callFailed: 'அழைக்க முடியவில்லை.',
+      callingStopped: 'அழைப்பது நிறுத்தப்பட்டது.',
+      waitingForCall: 'தற்போதைய அழைப்பு முடியும் வரை காத்திருக்கிறோம்.',
     },
   },
   kn: {
@@ -471,7 +526,7 @@ const WORDS: Record<Lang, Words> = {
       setupDone: 'ಸೆಟಪ್ ಮುಗಿದಿದೆ. ಇನ್ನು ಇಂಟರ್ನೆಟ್ ಬೇಕಿಲ್ಲ.',
       sosPrompt:
         'ನೀವು ಚೆನ್ನಾಗಿದ್ದೀರಾ? ರದ್ದುಮಾಡಲು ಪರದೆಯನ್ನು ಒತ್ತಿ, ಇಲ್ಲದಿದ್ದರೆ ಹದಿನೈದು ಸೆಕೆಂಡುಗಳಲ್ಲಿ ಸಹಾಯ ಸಂದೇಶ ಹೋಗುತ್ತದೆ.',
-      sosSent: 'ನಿಮ್ಮ ಸ್ಥಳದೊಂದಿಗೆ ಸಹಾಯ ಸಂದೇಶ ಕಳುಹಿಸಲಾಗಿದೆ.',
+      sosSent: 'ಸಹಾಯ ಸಂದೇಶ ಕಳುಹಿಸಲಾಗಿದೆ.',
       sosFailed: 'ಸಹಾಯ ಸಂದೇಶ ಕಳುಹಿಸಲು ಆಗಲಿಲ್ಲ.',
       sosCancelled: 'ರದ್ದುಮಾಡಲಾಗಿದೆ.',
       noSosNumber: 'ತುರ್ತು ಸಂಖ್ಯೆ ಉಳಿಸಿಲ್ಲ. ಸೆಟ್ಟಿಂಗ್ಸ್‌ನಲ್ಲಿ ಸೇರಿಸಿ.',
@@ -489,6 +544,17 @@ const WORDS: Record<Lang, Words> = {
       callOffer: 'ನಿಮ್ಮ ಸಂಪರ್ಕಕ್ಕೆ ಕರೆ ಮಾಡಲು ಎಲ್ಲಿಯಾದರೂ ಒತ್ತಿ.',
       shortcutHelp:
         'ಈ ಪಟ್ಟಿಯಲ್ಲಿ ಸೆಕೆಂಡ್ ಸೈಟ್ ತೆರೆದು ಅದರ ಶಾರ್ಟ್‌ಕಟ್ ಆನ್ ಮಾಡಿ. ನಂತರ ಎರಡೂ ವಾಲ್ಯೂಮ್ ಬಟನ್ ಒತ್ತಿ ಹಿಡಿದರೆ ಆ್ಯಪ್ ತೆರೆಯುತ್ತದೆ.',
+      detectionSlow: 'ಪತ್ತೆ ನಿಧಾನವಾಗಿದೆ. ಎಚ್ಚರಿಕೆಗಳು ತಡವಾಗಬಹುದು.',
+      crowded: 'ಮುಂದೆ ಜನಸಂದಣಿ.',
+      calling1: 'ಮೊದಲ ಸಂಪರ್ಕಕ್ಕೆ ಕರೆ ಮಾಡುತ್ತಿದ್ದೇವೆ.',
+      calling2: 'ಎರಡನೇ ಸಂಪರ್ಕಕ್ಕೆ ಕರೆ ಮಾಡುತ್ತಿದ್ದೇವೆ.',
+      calling3: 'ಮೂರನೇ ಸಂಪರ್ಕಕ್ಕೆ ಕರೆ ಮಾಡುತ್ತಿದ್ದೇವೆ.',
+      noAnswer: 'ಉತ್ತರವಿಲ್ಲ.',
+      callEnded: 'ಕರೆಗಳು ಮುಗಿದಿವೆ.',
+      nobodyAnswered: 'ಯಾರೂ ಉತ್ತರಿಸಲಿಲ್ಲ.',
+      callFailed: 'ಕರೆ ಮಾಡಲು ಆಗಲಿಲ್ಲ.',
+      callingStopped: 'ಕರೆ ಮಾಡುವುದನ್ನು ನಿಲ್ಲಿಸಲಾಗಿದೆ.',
+      waitingForCall: 'ಈಗಿನ ಕರೆ ಮುಗಿಯುವವರೆಗೆ ಕಾಯುತ್ತಿದ್ದೇವೆ.',
     },
   },
 }
@@ -638,11 +704,12 @@ async function speakRaw(text: string, lang: Lang): Promise<void> {
 }
 
 // Routine sentences wait their turn. An urgent one (something moving, or within two steps) cuts in at once.
+// Resolves true when the sentence was spoken to the end, false when it had to wait or was cut off.
 let generation = 0
-export async function speak(text: string, lang: Lang, urgent = false, key?: string): Promise<void> {
+export async function speak(text: string, lang: Lang, urgent = false, key?: string): Promise<boolean> {
   if (busy && !urgent) {
     pending = { text, lang, at: performance.now(), key }
-    return
+    return false
   }
   if (busy) {
     generation++
@@ -651,10 +718,12 @@ export async function speak(text: string, lang: Lang, urgent = false, key?: stri
   }
   const mine = ++generation
   busy = true
+  let heard = false
   try {
     await speakRaw(text, lang)
   } finally {
-    if (mine === generation) {
+    heard = mine === generation
+    if (heard) {
       busy = false
       const next = pending
       pending = null
@@ -662,6 +731,7 @@ export async function speak(text: string, lang: Lang, urgent = false, key?: stri
       if (next && fresh) void speak(next.text, next.lang)
     }
   }
+  return heard
 }
 export function isSpeaking(): boolean {
   return busy

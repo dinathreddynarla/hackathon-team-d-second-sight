@@ -64,4 +64,10 @@
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Emergency calls (CALL_PHONE above places them): see when a call ends, read whether it was answered, and turn the speaker on. -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- CALL_PHONE implies a telephony requirement; the app is still useful on a device without one. -->
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
 </manifest>

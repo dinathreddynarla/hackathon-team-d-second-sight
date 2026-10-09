@@ -41,6 +41,11 @@ export function useDetection(
   const [fps, setFps] = useState(0)
   // The caption and lane stay up only while they are still true: until this time, then they clear.
   const shownRef = useRef(false)
+  // For the alerts that watch the loop itself: when it last ran, and the most people seen in one frame since the
+  // crowd alert last looked (it resets the count when it reads it).
+  const lastTickAtRef = useRef(0)
+  const peopleRef = useRef(0)
+  const scannedAtRef = useRef(-Infinity)
   const showUntilRef = useRef(0)
 
   useEffect(() => {
@@ -79,8 +84,11 @@ export function useDetection(
       if (now <= lastTs) return // MediaPipe needs strictly increasing timestamps
       lastTs = now
       const { detections } = detector.detectForVideo(video, now)
+      lastTickAtRef.current = now
       if (detections.length) lastSeenAt = now
       lastDetectionsRef.current = detections
+      const people = detections.filter(d => d.categories[0]?.categoryName === 'person').length
+      if (people > peopleRef.current) peopleRef.current = people
       if (window.__ss)
         window.__ss.last = { n: detections.length, labels: detections.map(d => d.categories[0]?.categoryName ?? '?') }
       const target = analyse(detections, video.videoWidth, video.videoHeight, kRef.current, now)
@@ -148,6 +156,7 @@ export function useDetection(
           .filter(name => (EXTRA_CLASSES as readonly string[]).includes(name))
       ),
     ]
+    scannedAtRef.current = performance.now()
     pauseWarnings(true)
     const text = await readText(frameJpeg(video))
     const sentence = describeSentence(targets, extras, text, langRef.current)
@@ -159,7 +168,18 @@ export function useDetection(
     return sentence
   }, [videoRef, running, model])
 
-  return { model, lastSaid, lane, fps, calibrate, scan, k: kRef.current }
+  return {
+    model,
+    lastSaid,
+    lane,
+    fps,
+    lastTickAt: lastTickAtRef,
+    people: peopleRef,
+    scannedAt: scannedAtRef,
+    calibrate,
+    scan,
+    k: kRef.current,
+  }
 }
 
 // The current camera frame as base64 JPEG (no data: prefix), for text reading.

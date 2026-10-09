@@ -48,11 +48,13 @@ system text size. Numbers that change (countdown, frames per second) use tabular
 
 ## Screens
 
-- **Main:** title and settings bubble; camera card with the status bubble and caption floating on it; lane strip;
+- **Main:** title, a red Help bubble and the settings bubble; camera card with the status bubble and caption floating
+  on it; lane strip;
   Scan once and language; Start / Stop across the bottom.
 - **Settings and setup:** full-screen pages of grouped rows. The Back button closes them.
-- **Fall alert:** a red field, the question, a very large countdown, a strip of warning dots, and one white bubble.
-  The whole screen cancels.
+- **Fall alert and Help:** a red field, the question (or "Asking for help"), a very large countdown, a strip of
+  warning dots, and one white bubble. The same screen then shows the message going out, who is being called and how
+  it ended. The whole screen is always the one control: cancel, stop calling, or back.
 
 ## Screen reader rules
 

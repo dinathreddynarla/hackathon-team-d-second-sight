@@ -23,15 +23,8 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
-// Native calls the web page cannot make itself: open Android's "Install voice data" screen, send an SOS SMS silently,
-// and call the emergency contact.
-@CapacitorPlugin(
-    name = "Setup",
-    permissions = {
-        @Permission(alias = "sms", strings = { Manifest.permission.SEND_SMS }),
-        @Permission(alias = "phone", strings = { Manifest.permission.CALL_PHONE }),
-    }
-)
+// Two native calls the web page cannot make itself: open Android's "Install voice data" screen, and send an SOS SMS silently.
+@CapacitorPlugin(name = "Setup", permissions = { @Permission(alias = "sms", strings = { Manifest.permission.SEND_SMS }) })
 public class SetupPlugin extends Plugin {
 
     @PluginMethod

@@ -30,6 +30,10 @@ and is handled without looking. Speech is the main channel; the screen confirms 
 
 - Detects people, cars, motorcycles, bicycles, buses, trucks, dogs and cows. Not stairs, poles or potholes.
 - Start / Stop is one large control at the bottom of the screen, found by touch.
+- After a fall that is not cancelled, or when help is asked for, up to three emergency contacts get an SMS with the
+  location, then are phoned in order until one answers. It needs a SIM and signal.
+- It does not recognise rain, puddles or smoke. It says when the camera view is washed out, and when several people
+  are in view.
 - The screen shows the offline proof: "Offline", with the model already on the phone.
 - Detection keeps the main thread busy, so the interface avoids heavy animation and large blurred areas.
 
