@@ -6,7 +6,7 @@ import { sendSmsToAll } from '../../native/setup'
 import { contactsOf } from '../settings/settings'
 import { announce, isSpeaking, phrase, speak, type Lang, type Phrase } from '../speech/speech'
 import { startSiren, stopSiren } from './siren'
-import { vibrate } from '../../native/vibrate'
+import { vibrate } from '../../native/vibrate.ts'
 
 export type SosState = 'idle' | 'countdown' | 'sending' | 'calling' | 'answered' | 'noAnswer' | 'failed'
 // A fall gets 15 s to say "I'm fine". Lying still gets 30 s: it is a weaker signal (a nap on a bench looks the same).

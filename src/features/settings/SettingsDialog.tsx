@@ -26,8 +26,12 @@ type Props = {
   onRate: (rate: SpeechRate) => void
   onTorch: (torch: boolean) => void
   onSiren: (siren: boolean) => void
+  walls: boolean
+  onWalls: (walls: boolean) => void
   onSosNumber: (slot: number, number: string) => void
   onCalibrate: () => boolean
+  groundOn: boolean
+  onGround: (on: boolean) => void
   onRunSetup: () => void
   onTestFall: () => void
 }
@@ -52,8 +56,12 @@ export function SettingsDialog({
   onRate,
   onTorch,
   onSiren,
+  walls,
+  onWalls,
   onSosNumber,
   onCalibrate,
+  groundOn,
+  onGround,
   onRunSetup,
   onTestFall,
 }: Props) {
@@ -135,6 +143,23 @@ export function SettingsDialog({
           <Row label={s.buzz} hint={s.buzzHint} testId="buzz-demo" onClick={() => void demoBuzz(lang)} />
         </Group>
 
+        <Group title={s.groundGroup}>
+          <Stack sx={{ p: 1.5, gap: 1.25 }}>
+            <Segmented
+              label={s.ground}
+              value={groundOn ? 'on' : 'off'}
+              onChange={value => onGround(value === 'on')}
+              options={[
+                { value: 'on', label: s.on, testId: 'ground-on' },
+                { value: 'off', label: s.off, testId: 'ground-off' },
+              ]}
+            />
+            <Typography variant="body2" sx={{ color: color.chalk, px: 0.5 }}>
+              {s.groundHint}
+            </Typography>
+          </Stack>
+        </Group>
+
         <Group title={s.emergencyGroup}>
           <Stack sx={{ p: 2, gap: 1.5 }}>
             <Typography variant="body2" sx={{ color: color.chalk }}>
@@ -164,6 +189,13 @@ export function SettingsDialog({
         </Group>
 
         <Group title={s.batteryGroup}>
+          <Row
+            label={s.walls}
+            hint={walls ? s.wallsOn : s.wallsOff}
+            trailing={walls ? '✓' : ''}
+            testId="walls"
+            onClick={() => onWalls(!walls)}
+          />
           <Row
             label={s.dim}
             hint={dim ? s.dimOn : s.dimOff}

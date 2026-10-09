@@ -6,6 +6,7 @@ declare global {
       detector: ObjectDetector
       delegate: 'GPU' | 'CPU'
       last: { n: number; labels: string[] } | null
+      depth?: { left: number; ahead: number; right: number; ms: number }
       signs?: { ms: number; hits: { key: string; score: number }[] }
       chosen?: { label: string; side: string; distance: number; approaching: boolean } | null
       // The colour last read off a traffic light in view (null: could not be read).

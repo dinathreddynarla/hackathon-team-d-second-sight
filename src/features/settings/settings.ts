@@ -5,6 +5,7 @@ import { RATES, type Lang, type SpeechRate } from '../speech/speech'
 export const MAX_CONTACTS = 3
 // sosNumbers is one slot per contact, in calling order; an empty slot is an empty string.
 // dim: screen at 5% brightness while watching. The user cannot see it; it is the biggest battery saving there is.
+// walls: the depth model for obstacles. Off by default: it is the heaviest part (about 1.5 s per check on an iQOO Neo 10).
 // rate: how fast the voice talks. torch: light the flashlight when the camera finds it dark. siren: sound an alarm
 // for the people nearby when no emergency contact could be reached.
 export type Settings = {
@@ -15,6 +16,7 @@ export type Settings = {
   rate: SpeechRate
   torch: boolean
   siren: boolean
+  walls: boolean
 }
 const KEY = 'secondsight.settings'
 const DEFAULTS: Settings = {
@@ -25,6 +27,7 @@ const DEFAULTS: Settings = {
   rate: 'normal',
   torch: true,
   siren: true,
+  walls: false,
 }
 
 function load(): Settings {

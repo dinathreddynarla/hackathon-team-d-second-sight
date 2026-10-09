@@ -1,6 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react'
 
 import { hasTorch, setTorch, torchOn } from '../camera/torch'
+import { obstacleNearRecently } from '../obstacles/useObstacles'
 import { announce, isSpeaking, phrase, speak, type Lang } from '../speech/speech'
 
 // The user cannot see a dead battery icon or a finger over the lens, so both are spoken.
@@ -162,7 +163,9 @@ export function useCameraViewAlerts(
       if (!g || !video || video.readyState < 2) return
       g.drawImage(video, 0, 0, canvas.width, canvas.height)
       const stats = viewStats(g.getImageData(0, 0, canvas.width, canvas.height).data)
-      const seen = classify(stats)
+      const raw = classify(stats)
+      // A wall at the lens is flat too: when depth says something is near, it is an obstacle, not a covered lens.
+      const seen = raw === 'blocked' && obstacleNearRecently() ? 'clear' : raw
       const pitch = stats.mean < PITCH_MEAN && stats.std < PITCH_STD
       if (torchOn(video)) {
         litBlind = seen === 'blocked' || pitch ? litBlind + 1 : 0

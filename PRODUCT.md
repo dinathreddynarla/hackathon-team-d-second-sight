@@ -28,7 +28,9 @@ and is handled without looking. Speech is the main channel; the screen confirms 
 
 ## Capabilities and Constraints
 
-- Detects people, cars, motorcycles, bicycles, buses, trucks, dogs and cows. Not stairs, poles or potholes.
+- Detects people, cars, motorcycles, bicycles, buses, trucks, dogs and cows. Not stairs, kerbs or poles.
+- Warns about potholes and manholes in the road within about 5 m. It misses some, and can take a dark patch for
+  one, so it never says the road is clear.
 - Start / Stop is one large control at the bottom of the screen, found by touch.
 - After a fall that is not cancelled, or when help is asked for, up to three emergency contacts get an SMS with the
   location, then are phoned in order until one answers. It needs a SIM and signal.

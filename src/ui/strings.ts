@@ -73,6 +73,11 @@ const en = {
     calibrateStopped: 'Start the camera first.',
     buzz: 'Feel the buzzes',
     buzzHint: 'Within two steps the phone buzzes. Left: one short. Right: one long. Ahead: two. Press to feel each.',
+    groundGroup: 'Pothole warnings',
+    ground: 'Pothole warnings',
+    groundHint: 'Warns about potholes and manholes in the road ahead. It misses some: keep using the cane.',
+    on: 'On',
+    off: 'Off',
     emergencyGroup: 'Emergency contacts',
     contact: ['First contact', 'Second contact', 'Third contact'],
     contactsHint:
@@ -88,6 +93,9 @@ const en = {
     shortcutHint:
       'Hold both volume keys to open Second Sight with the camera on. Opens Android’s accessibility settings.',
     batteryGroup: 'Screen and battery',
+    walls: 'Warn about walls and obstacles (experimental)',
+    wallsOn: 'On. Uses a second model and more battery; detection may slow down.',
+    wallsOff: 'Off. People, vehicles, animals and road signs are still announced.',
     dim: 'Dim the screen while watching',
     dimOn: 'On. Saves battery. The screen stays on while the camera runs.',
     dimOff: 'Off. Full brightness while the camera runs.',
@@ -195,6 +203,12 @@ const te: Strings = {
     buzz: 'వైబ్రేషన్‌లను తెలుసుకోండి',
     buzzHint:
       'రెండు అడుగుల లోపు ఫోన్ వైబ్రేట్ అవుతుంది. ఎడమ: ఒక చిన్నది. కుడి: ఒక పొడవైనది. ముందు: రెండు. ఒక్కొక్కటి తెలుసుకోవడానికి నొక్కండి.',
+    groundGroup: 'గుంతల హెచ్చరికలు',
+    ground: 'గుంతల హెచ్చరికలు',
+    groundHint:
+      'ముందు రోడ్డుపై ఉన్న గుంతలు, మ్యాన్‌హోల్‌ల గురించి హెచ్చరిస్తుంది. కొన్నింటిని గుర్తించలేదు: కర్ర వాడుతూనే ఉండండి.',
+    on: 'ఆన్',
+    off: 'ఆఫ్',
     emergencyGroup: 'అత్యవసర కాంటాక్ట్‌లు',
     contact: ['మొదటి కాంటాక్ట్', 'రెండవ కాంటాక్ట్', 'మూడవ కాంటాక్ట్'],
     contactsHint: 'సహాయం అవసరమైనప్పుడు అందరికీ సందేశం పంపి, ఈ క్రమంలో కాల్ చేస్తాం. వద్దనుకున్న చోట ఖాళీగా వదిలేయండి.',
@@ -209,6 +223,9 @@ const te: Strings = {
     shortcutHint:
       'రెండు వాల్యూమ్ కీలు నొక్కి పట్టుకుంటే కెమెరా ఆన్‌తో సెకండ్ సైట్ తెరుచుకుంటుంది. ఆండ్రాయిడ్ యాక్సెసిబిలిటీ సెట్టింగ్స్ తెరుస్తుంది.',
     batteryGroup: 'స్క్రీన్ మరియు బ్యాటరీ',
+    walls: 'గోడలు, అడ్డంకుల హెచ్చరిక (ప్రయోగాత్మకం)',
+    wallsOn: 'ఆన్. రెండో మోడల్ వాడుతుంది, బ్యాటరీ ఎక్కువ ఖర్చవుతుంది.',
+    wallsOff: 'ఆఫ్. వ్యక్తులు, వాహనాలు, జంతువులు, రోడ్డు బోర్డులు చెబుతూనే ఉంటుంది.',
     dim: 'చూస్తున్నప్పుడు స్క్రీన్ తగ్గించు',
     dimOn: 'ఆన్. బ్యాటరీ ఆదా. కెమెరా నడుస్తున్నంత సేపు స్క్రీన్ ఆన్‌లో ఉంటుంది.',
     dimOff: 'ఆఫ్. కెమెరా నడుస్తున్నప్పుడు పూర్తి వెలుగు.',

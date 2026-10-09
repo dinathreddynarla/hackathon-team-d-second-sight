@@ -17,6 +17,7 @@ import {
 import { createDetector, preferredDelegate } from './detector'
 import { analyse, analyseAll, calibrateK, loadK, saveK, type Side, type Target } from './distance'
 import { createLightWatch, lightColour, type LightColour } from './trafficLight'
+import type { GroundHazard } from './ground'
 
 export type ModelState = 'loading' | 'ready' | 'missing'
 
@@ -33,10 +34,13 @@ export function useDetection(
   videoRef: RefObject<HTMLVideoElement | null>,
   canvasRef: RefObject<HTMLCanvasElement | null>,
   running: boolean,
-  lang: Lang
+  lang: Lang,
+  // What the road-surface model has confirmed right now (see useGround), so scan-once can list it.
+  ground?: RefObject<GroundHazard[]>
 ) {
   const detectorRef = useRef<ObjectDetector | null>(null)
   const kRef = useRef(loadK())
+  const targetRef = useRef<Target | null>(null)
   const langRef = useRef(lang)
   langRef.current = lang
   const lastRatioRef = useRef(0)
@@ -102,6 +106,7 @@ export function useDetection(
       if (window.__ss)
         window.__ss.last = { n: detections.length, labels: detections.map(d => d.categories[0]?.categoryName ?? '?') }
       const target = analyse(detections, video.videoWidth, video.videoHeight, kRef.current, now)
+      targetRef.current = target
       setCurrentTarget(target ? `${target.label}:${target.side}` : null)
       if (window.__ss)
         window.__ss.chosen = target && {
@@ -194,16 +199,25 @@ export function useDetection(
     const light = scannedAtRef.current - lightRef.current.at < LIGHT_FRESH_MS ? lightRef.current.colour : null
     pauseWarnings(true)
     const text = await readText(frameJpeg(video))
-    const sentence = describeSentence(targets, extras, text, langRef.current, light)
+    const sentence = describeSentence(targets, extras, text, langRef.current, light, ground?.current ?? [])
     void speak(sentence, langRef.current, true).finally(() => pauseWarnings(false))
     setLastSaid(sentence)
     setLane(null)
     shownRef.current = true
     showUntilRef.current = performance.now() + 8000
     return sentence
-  }, [videoRef, running, model])
+  }, [videoRef, running, model, ground])
+
+  // For a warning spoken from outside this loop (the road surface): put it on the caption and the lane strip.
+  const show = useCallback((text: string, side: Side) => {
+    setLastSaid(text)
+    setLane(side)
+    shownRef.current = true
+    showUntilRef.current = Math.max(showUntilRef.current, performance.now() + 3000)
+  }, [])
 
   return {
+    targetRef,
     model,
     lastSaid,
     lane,
@@ -213,6 +227,7 @@ export function useDetection(
     scannedAt: scannedAtRef,
     calibrate,
     scan,
+    show,
     k: kRef.current,
   }
 }
