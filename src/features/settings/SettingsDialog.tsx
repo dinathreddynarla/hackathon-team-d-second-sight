@@ -22,6 +22,8 @@ type Props = {
   onDim: (dim: boolean) => void
   onSosNumber: (slot: number, number: string) => void
   onCalibrate: () => boolean
+  groundOn: boolean
+  onGround: (on: boolean) => void
   onRunSetup: () => void
   onTestFall: () => void
 }
@@ -42,6 +44,8 @@ export function SettingsDialog({
   onDim,
   onSosNumber,
   onCalibrate,
+  groundOn,
+  onGround,
   onRunSetup,
   onTestFall,
 }: Props) {
@@ -108,6 +112,23 @@ export function SettingsDialog({
             testId="calibrate"
             onClick={() => announce(onCalibrate() ? 'calibrated' : 'noPerson', lang)}
           />
+        </Group>
+
+        <Group title={s.groundGroup}>
+          <Stack sx={{ p: 1.5, gap: 1.25 }}>
+            <Segmented
+              label={s.ground}
+              value={groundOn ? 'on' : 'off'}
+              onChange={value => onGround(value === 'on')}
+              options={[
+                { value: 'on', label: s.on, testId: 'ground-on' },
+                { value: 'off', label: s.off, testId: 'ground-off' },
+              ]}
+            />
+            <Typography variant="body2" sx={{ color: color.chalk, px: 0.5 }}>
+              {s.groundHint}
+            </Typography>
+          </Stack>
         </Group>
 
         <Group title={s.emergencyGroup}>
