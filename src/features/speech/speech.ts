@@ -187,8 +187,8 @@ const WORDS: Record<Lang, Words> = {
       torchOn: 'Dark. Torch on.',
       alarmOn: 'Alarm on. Tap three times to stop.',
       bystander: 'Emergency. This person needs help. Please call one one two.',
-      alarmTwoMore: 'Tap two more times to stop the alarm.',
-      alarmOneMore: 'Tap once more to stop the alarm.',
+      alarmTwoMore: 'Two more taps.',
+      alarmOneMore: 'One more tap.',
       detectionSlow: 'Detection is slow. Warnings may be late.',
       crowded: 'Crowd ahead.',
       helpPrompt: 'Asking for help. Tap to cancel.',
@@ -292,8 +292,8 @@ const WORDS: Record<Lang, Words> = {
       torchOn: 'చీకటిగా ఉంది. టార్చ్ ఆన్ అయింది.',
       alarmOn: 'అలారం ఆన్. ఆపడానికి మూడు సార్లు నొక్కండి.',
       bystander: 'అత్యవసరం. ఈ వ్యక్తికి సహాయం కావాలి. దయచేసి 1 1 2 కి కాల్ చేయండి.',
-      alarmTwoMore: 'అలారం ఆపడానికి ఇంకా రెండు సార్లు నొక్కండి.',
-      alarmOneMore: 'ఆపడానికి ఇంకోసారి నొక్కండి.',
+      alarmTwoMore: 'ఇంకా రెండు సార్లు.',
+      alarmOneMore: 'ఇంకోసారి.',
       detectionSlow: 'డిటెక్షన్ నెమ్మదిగా ఉంది. హెచ్చరికలు ఆలస్యం కావచ్చు.',
       crowded: 'ముందు రద్దీ ఉంది.',
       helpPrompt: 'సహాయం అడుగుతోంది. రద్దు చేయడానికి నొక్కండి.',
@@ -396,8 +396,8 @@ const WORDS: Record<Lang, Words> = {
       torchOn: 'अँधेरा है। टॉर्च चालू।',
       alarmOn: 'अलार्म चालू। रोकने के लिए तीन बार दबाएँ।',
       bystander: 'आपातकाल। इस व्यक्ति को मदद चाहिए। कृपया 1 1 2 पर कॉल करें।',
-      alarmTwoMore: 'अलार्म रोकने के लिए दो बार और दबाएँ।',
-      alarmOneMore: 'रोकने के लिए एक बार और दबाएँ।',
+      alarmTwoMore: 'दो बार और।',
+      alarmOneMore: 'एक बार और।',
       helpPrompt: 'मदद माँगी जा रही है। रद्द करने के लिए दबाएँ।',
       stillPrompt: 'आप तीस सेकंड से हिले नहीं। क्या आप ठीक हैं? रद्द करने के लिए स्क्रीन दबाएँ।',
       callOffer: 'अपने संपर्क को कॉल करने के लिए कहीं भी दबाएँ।',
@@ -501,8 +501,8 @@ const WORDS: Record<Lang, Words> = {
       torchOn: 'இருட்டாக உள்ளது. டார்ச் ஆன்.',
       alarmOn: 'அலாரம் ஆன். நிறுத்த மூன்று முறை தட்டவும்.',
       bystander: 'அவசரம். இவருக்கு உதவி தேவை. தயவுசெய்து 1 1 2 ஐ அழைக்கவும்.',
-      alarmTwoMore: 'அலாரத்தை நிறுத்த இன்னும் இரண்டு முறை தட்டவும்.',
-      alarmOneMore: 'நிறுத்த இன்னும் ஒரு முறை தட்டவும்.',
+      alarmTwoMore: 'இன்னும் இரண்டு முறை.',
+      alarmOneMore: 'இன்னும் ஒரு முறை.',
       helpPrompt: 'உதவி கேட்கப்படுகிறது. ரத்து செய்ய தட்டவும்.',
       stillPrompt: 'நீங்கள் முப்பது வினாடிகளாக அசையவில்லை. நலமா? ரத்து செய்ய திரையைத் தட்டவும்.',
       callOffer: 'உங்கள் தொடர்புக்கு அழைக்க எங்கும் தட்டவும்.',
@@ -606,8 +606,8 @@ const WORDS: Record<Lang, Words> = {
       torchOn: 'ಕತ್ತಲಾಗಿದೆ. ಟಾರ್ಚ್ ಆನ್ ಆಗಿದೆ.',
       alarmOn: 'ಅಲಾರಂ ಆನ್. ನಿಲ್ಲಿಸಲು ಮೂರು ಬಾರಿ ಒತ್ತಿ.',
       bystander: 'ತುರ್ತು ಪರಿಸ್ಥಿತಿ. ಈ ವ್ಯಕ್ತಿಗೆ ಸಹಾಯ ಬೇಕು. ದಯವಿಟ್ಟು 1 1 2 ಗೆ ಕರೆ ಮಾಡಿ.',
-      alarmTwoMore: 'ಅಲಾರಂ ನಿಲ್ಲಿಸಲು ಇನ್ನೂ ಎರಡು ಬಾರಿ ಒತ್ತಿ.',
-      alarmOneMore: 'ನಿಲ್ಲಿಸಲು ಇನ್ನೊಮ್ಮೆ ಒತ್ತಿ.',
+      alarmTwoMore: 'ಇನ್ನೂ ಎರಡು ಬಾರಿ.',
+      alarmOneMore: 'ಇನ್ನೊಮ್ಮೆ.',
       helpPrompt: 'ಸಹಾಯ ಕೇಳಲಾಗುತ್ತಿದೆ. ರದ್ದುಮಾಡಲು ಒತ್ತಿ.',
       stillPrompt: 'ನೀವು ಮೂವತ್ತು ಸೆಕೆಂಡುಗಳಿಂದ ಅಲುಗಾಡಿಲ್ಲ. ಚೆನ್ನಾಗಿದ್ದೀರಾ? ರದ್ದುಮಾಡಲು ಪರದೆಯನ್ನು ಒತ್ತಿ.',
       callOffer: 'ನಿಮ್ಮ ಸಂಪರ್ಕಕ್ಕೆ ಕರೆ ಮಾಡಲು ಎಲ್ಲಿಯಾದರೂ ಒತ್ತಿ.',
@@ -652,8 +652,9 @@ export function sentence(t: Target, lang: Lang): string {
   const w = WORDS[lang]
   const range = rangeWords(t.distance, lang)
   const noun = t.count > 1 ? `${t.count} ${w.plural[t.label]}` : w.label[t.label]
-  // "move left" / "move right" / "stop" when something blocks the way ahead (distance.ts, obstacles).
-  const guide = t.guidance ? `, ${w.guide[t.guidance]}` : ''
+  // "move left" / "move right" / "stop" when something is on a collision course (distance.ts). It comes FIRST: the
+  // action is what the user needs, and the end of a sentence is what an urgent warning cuts off.
+  const guide = t.guidance ? `${w.guide[t.guidance]}, ` : ''
   // An obstacle is always ahead and always near: the action comes first, about 1 s. A clearly open side is added.
   if (t.label === 'obstacle')
     return t.guidance && t.guidance !== 'stop'
@@ -661,12 +662,12 @@ export function sentence(t: Target, lang: Lang): string {
       : `${w.guide.stop}, ${noun}`
   if (w.sideFirst)
     return (
-      (t.approaching ? `${w.side[t.side]} ${noun} ${w.approaching}, ${range}` : `${w.side[t.side]} ${noun}, ${range}`) +
-      guide
+      guide +
+      (t.approaching ? `${w.side[t.side]} ${noun} ${w.approaching}, ${range}` : `${w.side[t.side]} ${noun}, ${range}`)
     )
   return (
-    (t.approaching ? `${noun} ${w.approaching}, ${w.side[t.side]}, ${range}` : `${noun} ${w.side[t.side]}, ${range}`) +
-    guide
+    guide +
+    (t.approaching ? `${noun} ${w.approaching}, ${w.side[t.side]}, ${range}` : `${noun} ${w.side[t.side]}, ${range}`)
   )
 }
 

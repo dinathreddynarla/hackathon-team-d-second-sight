@@ -166,10 +166,11 @@ export function useCameraViewAlerts(
       g.drawImage(video, 0, 0, canvas.width, canvas.height)
       const stats = viewStats(g.getImageData(0, 0, canvas.width, canvas.height).data)
       const raw = classify(stats)
-      noteCameraView(raw)
+      const pitch = stats.mean < PITCH_MEAN && stats.std < PITCH_STD
+      // Depth is distrusted only for a covered lens or a pitch-black picture: a dim room still shows its walls.
+      noteCameraView(raw === 'blocked' || pitch ? 'blocked' : 'clear')
       // A wall at the lens is flat too: when depth says something is near, it is an obstacle, not a covered lens.
       const seen = raw === 'blocked' && obstacleNearRecently() ? 'clear' : raw
-      const pitch = stats.mean < PITCH_MEAN && stats.std < PITCH_STD
       if (torchOn(video)) {
         litBlind = seen === 'blocked' || pitch ? litBlind + 1 : 0
         if (litBlind >= 2) {

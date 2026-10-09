@@ -233,10 +233,9 @@ export function useSos(
       if (!on || !startSiren()) return
       setAlarm(true)
       while (on) {
-        for (let i = 0; i < 2 && on; i++) {
-          beepSos(flashRef.current)
-          await pause(SOS_MS)
-        }
+        // One S O S, then the words: someone walking past hears them within about ten seconds.
+        beepSos(flashRef.current)
+        await pause(SOS_MS)
         // A beep brings people; words tell them what to do. English, then the user's own language for anyone
         // nearby who speaks it.
         if (on) await speak(phrase('bystander', 'en'), 'en', true)
