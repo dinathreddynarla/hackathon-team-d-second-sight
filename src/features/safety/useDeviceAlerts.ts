@@ -1,5 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react'
 
+import { obstacleNearRecently } from '../obstacles/useObstacles'
 import { announce, isSpeaking, phrase, speak, type Lang } from '../speech/speech'
 
 // The user cannot see a dead battery icon or a finger over the lens, so both are spoken.
@@ -126,7 +127,9 @@ export function useCameraViewAlerts(
       const video = videoRef.current
       if (!g || !video || video.readyState < 2) return
       g.drawImage(video, 0, 0, canvas.width, canvas.height)
-      const seen = classifyView(g.getImageData(0, 0, canvas.width, canvas.height).data)
+      const raw = classifyView(g.getImageData(0, 0, canvas.width, canvas.height).data)
+      // A wall at the lens is flat too: when depth says something is near, it is an obstacle, not a covered lens.
+      const seen = raw === 'blocked' && obstacleNearRecently() ? 'clear' : raw
       // A washed-out view is spoken like a dark one: "Camera can't see" is true of both, and "unclear" would sound
       // too much like "clear". While "blocked" is the last thing said it counts as that still going on, so a view
       // hovering between the two is not announced back and forth.

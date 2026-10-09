@@ -20,6 +20,8 @@ type Props = {
   onClose: () => void
   onLang: (lang: Lang) => void
   onDim: (dim: boolean) => void
+  walls: boolean
+  onWalls: (walls: boolean) => void
   onSosNumber: (slot: number, number: string) => void
   onCalibrate: () => boolean
   onRunSetup: () => void
@@ -40,6 +42,8 @@ export function SettingsDialog({
   onClose,
   onLang,
   onDim,
+  walls,
+  onWalls,
   onSosNumber,
   onCalibrate,
   onRunSetup,
@@ -132,6 +136,13 @@ export function SettingsDialog({
         </Group>
 
         <Group title={s.batteryGroup}>
+          <Row
+            label={s.walls}
+            hint={walls ? s.wallsOn : s.wallsOff}
+            trailing={walls ? '✓' : ''}
+            testId="walls"
+            onClick={() => onWalls(!walls)}
+          />
           <Row
             label={s.dim}
             hint={dim ? s.dimOn : s.dimOff}

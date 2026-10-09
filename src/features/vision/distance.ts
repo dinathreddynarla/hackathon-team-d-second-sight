@@ -24,6 +24,7 @@ const REAL_WIDTH: Record<TargetClass, number> = {
   truck: 2.4,
   dog: 0.4,
   cow: 0.8,
+  obstacle: 1.0, // unused: obstacle distance comes from depth, not box size
 }
 
 // Typical real-world heights in metres. The whole distance estimate rests on these guesses.
@@ -36,6 +37,7 @@ const REAL_HEIGHT: Record<TargetClass, number> = {
   truck: 3.0,
   dog: 0.5,
   cow: 1.4,
+  obstacle: 1.7, // unused
 }
 
 const K_KEY = 'secondsight.k'
@@ -148,19 +150,9 @@ export function analyse(
   if (best) {
     const b = best
     b.count = all.filter(t => t.label === b.label && t.side === b.side && sameBucket(t.distance, b.distance)).length
-    b.guidance = guidanceFor(b, all)
+    b.guidance = null // people move and the detector cannot see what is beside them; the cane decides
   }
   return best
-}
-
-// Something ahead within 5 m: steer towards the third of the frame with nothing in it. Moving things: stop.
-function guidanceFor(b: Target, all: Target[]): Guidance {
-  if (b.side !== 'ahead' || b.distance >= 5) return null
-  if (b.approaching) return 'stop'
-  const blocked = (side: Side) => all.some(t => t.side === side && t.distance < 5)
-  if (!blocked('left')) return 'left'
-  if (!blocked('right')) return 'right'
-  return 'stop'
 }
 
 function sameBucket(a: number, b: number): boolean {
