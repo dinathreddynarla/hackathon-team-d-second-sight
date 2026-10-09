@@ -60,13 +60,16 @@ makes single numbers dishonest.
 ## Key features
 
 - Detects people, cars, motorcycles, bicycles, buses, trucks, dogs and cows on the phone, no internet
+- Reads Indian road signs while walking (37 types: stop, no entry, speed limits 20 to 80, school ahead, pedestrian crossing, speed breaker, give way, …): "Sign: stop", once per sign, never over a warning. Left/right sign pairs are spoken without the side because the model cannot tell them apart
 - Speaks distance and direction, warns when something approaches, vibrates under 3 m
-- Scan once: double-tap the view or press volume-up twice to hear everything in front of you
-- English (India) and Telugu voices
+- Describe what is around: double-tap the view, press volume-up twice, or use the volume-key shortcut while watching. Speaks the warning objects with where and how far, other recognisable things by name (chair, bench, traffic light, stop sign, …), and any printed English text in view (read on the phone, offline)
+- Speaks English, Telugu, Hindi, Tamil and Kannada; the app offers only the languages whose voice is installed on the phone
 - Fall detection, two rules: an impact then stillness (15 s to cancel), or a collapse then 30 s lying still (30 s to cancel); then an SOS SMS with a maps link to up to three emergency contacts, then phone calls to them in order until one answers
+- **Open and start without finding anything:** assign Second Sight to Android's accessibility shortcut, then hold both volume keys for 3 s (on vivo/iQOO phones: once the phone is unlocked). The camera starts by itself
 - Ask for help on purpose: hold volume-down for 2 s, or press Help on the screen (10 s to cancel)
 - Spoken status: battery at 20% and 10% with the real level, "Camera blocked. Clear the lens.", "Camera can't see. Warnings may be missed." (too dark, or a washed-out picture: heavy rain, smoke, fog), "Detection is slow. Warnings may be late."
 - "Crowd ahead." when four or more people stay in view
+- Screen stays on and dims to 5% while watching (saves battery); a quiet street drops detection from 10 to about 3 checks a second
 - Works in flight mode after a one-time setup (voices are downloaded by Android's own text-to-speech settings).
   The SOS is the exception: the SMS and the calls need mobile signal, so they cannot go out in flight mode
 - One large Start / Stop button fills the bottom of the screen and confirms by voice, so it is found by touch alone
@@ -93,9 +96,10 @@ _To be written._
 
 1. Download `second-sight.apk` from the Releases page (built with `pnpm apk:release`, no INTERNET permission).
 2. On the phone open the file, allow "install unknown apps" when asked. If Play Protect warns, choose "Install anyway".
-3. Open Second Sight. One-time setup: tap Install voices, download English (India) and Telugu (needs Wi-Fi once), tap Test voice, Done. If you enter an emergency contact, allow SMS, location, phone calls and the call log when asked.
-4. Allow the camera. Detection and speech work with airplane mode on. Keep it off if you rely on the SOS, which needs mobile signal for its SMS and its calls.
-5. Hang the phone at chest height, camera facing forward. Tap the large button at the bottom to start, and again to stop. Double-tap the view to scan once.
+3. Optional, recommended: Settings → Accessibility → Second Sight → turn on its shortcut (choose "volume keys"). Holding both volume keys then opens it with the camera on.
+4. Open Second Sight. One-time setup: tap Install voices, download your language and English (India) (needs Wi-Fi once), tap Test voice, Done. If you enter an emergency contact, allow SMS, location, phone calls and the call log when asked.
+5. Allow the camera. Detection and speech work with airplane mode on. Keep it off if you rely on the SOS, which needs mobile signal for its SMS and its calls.
+6. Hang the phone at chest height, camera facing forward. Tap the large button at the bottom to start, and again to stop. Double-tap the view to scan once.
 
 Tested on: iQOO Neo 10 (Android 16). Needs Android 7 or newer and a WebView from 2021 or later.
 

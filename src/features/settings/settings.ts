@@ -4,9 +4,10 @@ import type { Lang } from '../speech/speech'
 
 export const MAX_CONTACTS = 3
 // sosNumbers is one slot per contact, in calling order; an empty slot is an empty string.
-export type Settings = { lang: Lang; sosNumbers: string[]; setupDone: boolean }
+// dim: screen at 5% brightness while watching. The user cannot see it; it is the biggest battery saving there is.
+export type Settings = { lang: Lang; sosNumbers: string[]; setupDone: boolean; dim: boolean }
 const KEY = 'secondsight.settings'
-const DEFAULTS: Settings = { lang: 'en', sosNumbers: [], setupDone: false }
+const DEFAULTS: Settings = { lang: 'en', sosNumbers: [], setupDone: false, dim: true }
 
 function load(): Settings {
   try {

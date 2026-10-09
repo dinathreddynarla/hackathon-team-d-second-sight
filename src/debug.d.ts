@@ -6,6 +6,7 @@ declare global {
       detector: ObjectDetector
       delegate: 'GPU' | 'CPU'
       last: { n: number; labels: string[] } | null
+      signs?: { ms: number; hits: { key: string; score: number }[] }
       chosen?: { label: string; side: string; distance: number; approaching: boolean } | null
     }
     // Stand in for the phone when there is none: see src/native/calls.ts and src/native/setup.ts.

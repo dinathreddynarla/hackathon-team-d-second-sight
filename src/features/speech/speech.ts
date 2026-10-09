@@ -4,7 +4,31 @@ import { Capacitor } from '@capacitor/core'
 import type { TargetClass } from '../vision/detector'
 import type { Side, Target } from '../vision/distance'
 
-export type Lang = 'en' | 'te'
+// Languages with a full sentence table. A language appears in the app only when its voice is installed on the phone.
+export const LANGS = ['en', 'te', 'hi', 'ta', 'kn'] as const
+export type Lang = (typeof LANGS)[number]
+// Things worth naming when the user asks "what is around me", beyond the eight that get warnings.
+export const EXTRA_CLASSES = [
+  'traffic light',
+  'stop sign',
+  'bench',
+  'chair',
+  'fire hydrant',
+  'potted plant',
+  'dining table',
+  'umbrella',
+  'backpack',
+  'handbag',
+  'suitcase',
+  'bottle',
+  'cell phone',
+  'cat',
+  'horse',
+  'bird',
+  'bed',
+  'toilet',
+] as const
+export type ExtraClass = (typeof EXTRA_CLASSES)[number]
 export type Range = 'oneStep' | 'twoSteps' | 'close' | 'metres' | 'far'
 export type Phrase =
   | 'ready'
@@ -43,9 +67,16 @@ export type Phrase =
   | 'callFailed'
   | 'callingStopped'
   | 'waitingForCall'
+  | 'callOffer'
+  | 'shortcutHelp'
 
 type Words = {
   tag: string
+  // Telugu, Hindi, Tamil and Kannada say where before what: "left, car, 8 metres".
+  sideFirst: boolean
+  extra: Record<ExtraClass, string>
+  also: string
+  textSays: string
   label: Record<TargetClass, string>
   plural: Record<TargetClass, string>
   side: Record<Side, string>
@@ -60,6 +91,29 @@ type Words = {
 const WORDS: Record<Lang, Words> = {
   en: {
     tag: 'en-IN',
+    sideFirst: false,
+    extra: {
+      'traffic light': 'traffic light',
+      'stop sign': 'stop sign',
+      bench: 'bench',
+      chair: 'chair',
+      'fire hydrant': 'fire hydrant',
+      'potted plant': 'plant pot',
+      'dining table': 'table',
+      umbrella: 'umbrella',
+      backpack: 'backpack',
+      handbag: 'handbag',
+      suitcase: 'suitcase',
+      bottle: 'bottle',
+      'cell phone': 'phone',
+      cat: 'cat',
+      horse: 'horse',
+      bird: 'bird',
+      bed: 'bed',
+      toilet: 'toilet',
+    },
+    also: 'Also',
+    textSays: 'Text says',
     label: {
       person: 'person',
       car: 'car',
@@ -92,7 +146,7 @@ const WORDS: Record<Lang, Words> = {
       nothingAround: 'nothing detected around you',
       calibrated: 'calibrated',
       noPerson: 'no person in view',
-      setupIntro: 'One time setup. Tap install voices, then choose English India and Telugu.',
+      setupIntro: 'One time setup. Tap install voices, then choose your language.',
       voicesInstalled: 'Now tap test voice.',
       voiceTest: 'The voice works. Setup done.',
       setupDone: 'Setup done. No internet is needed from now on.',
@@ -123,10 +177,36 @@ const WORDS: Record<Lang, Words> = {
       callFailed: 'Could not call.',
       callingStopped: 'Stopped calling.',
       waitingForCall: 'Waiting for the current call to end.',
+      callOffer: 'Tap anywhere to call your contact.',
+      shortcutHelp:
+        'Find Second Sight in this list, open it, and turn on its shortcut. Then holding both volume keys opens the app.',
     },
   },
   te: {
     tag: 'te-IN',
+    sideFirst: true,
+    extra: {
+      'traffic light': 'ట్రాఫిక్ లైట్',
+      'stop sign': 'స్టాప్ బోర్డు',
+      bench: 'బెంచ్',
+      chair: 'కుర్చీ',
+      'fire hydrant': 'ఫైర్ హైడ్రంట్',
+      'potted plant': 'మొక్క కుండీ',
+      'dining table': 'టేబుల్',
+      umbrella: 'గొడుగు',
+      backpack: 'బ్యాగ్',
+      handbag: 'హ్యాండ్‌బ్యాగ్',
+      suitcase: 'సూట్‌కేస్',
+      bottle: 'సీసా',
+      'cell phone': 'ఫోన్',
+      cat: 'పిల్లి',
+      horse: 'గుర్రం',
+      bird: 'పక్షి',
+      bed: 'మంచం',
+      toilet: 'టాయిలెట్',
+    },
+    also: 'ఇంకా',
+    textSays: 'రాసి ఉన్నది',
     label: {
       person: 'వ్యక్తి',
       car: 'కారు',
@@ -191,6 +271,290 @@ const WORDS: Record<Lang, Words> = {
       callFailed: 'కాల్ చేయలేకపోయాం.',
       callingStopped: 'కాల్ చేయడం ఆపేశాం.',
       waitingForCall: 'ప్రస్తుత కాల్ ముగిసే వరకు వేచి ఉన్నాం.',
+      callOffer: 'మీ కాంటాక్ట్‌కు కాల్ చేయడానికి ఎక్కడైనా నొక్కండి.',
+      shortcutHelp:
+        'ఈ జాబితాలో సెకండ్ సైట్ తెరిచి దాని షార్ట్‌కట్ ఆన్ చేయండి. తర్వాత రెండు వాల్యూమ్ బటన్లు నొక్కి పట్టుకుంటే యాప్ తెరుచుకుంటుంది.',
+    },
+  },
+  hi: {
+    tag: 'hi-IN',
+    sideFirst: true,
+    extra: {
+      'traffic light': 'ट्रैफ़िक लाइट',
+      'stop sign': 'स्टॉप बोर्ड',
+      bench: 'बेंच',
+      chair: 'कुर्सी',
+      'fire hydrant': 'फ़ायर हाइड्रेंट',
+      'potted plant': 'गमला',
+      'dining table': 'मेज़',
+      umbrella: 'छाता',
+      backpack: 'बैग',
+      handbag: 'हैंडबैग',
+      suitcase: 'सूटकेस',
+      bottle: 'बोतल',
+      'cell phone': 'फ़ोन',
+      cat: 'बिल्ली',
+      horse: 'घोड़ा',
+      bird: 'चिड़िया',
+      bed: 'बिस्तर',
+      toilet: 'शौचालय',
+    },
+    also: 'साथ में',
+    textSays: 'लिखा है',
+    label: {
+      person: 'व्यक्ति',
+      car: 'कार',
+      motorcycle: 'बाइक',
+      bicycle: 'साइकिल',
+      bus: 'बस',
+      truck: 'ट्रक',
+      dog: 'कुत्ता',
+      cow: 'गाय',
+    },
+    plural: {
+      person: 'लोग',
+      car: 'कारें',
+      motorcycle: 'बाइकें',
+      bicycle: 'साइकिलें',
+      bus: 'बसें',
+      truck: 'ट्रक',
+      dog: 'कुत्ते',
+      cow: 'गायें',
+    },
+    side: { left: 'बाईं ओर', ahead: 'सामने', right: 'दाईं ओर' },
+    range: { oneStep: 'एक कदम', twoSteps: 'दो कदम', close: 'पास', metres: '', far: 'दूर' },
+    metres: n => `${n} मीटर`,
+    andMore: n => `और ${n}`,
+    guide: { left: 'बाईं ओर हटें', right: 'दाईं ओर हटें', stop: 'रुकें' },
+    approaching: 'आ रहा है',
+    phrase: {
+      ready: 'सेकंड साइट तैयार',
+      stopped: 'रुक गया',
+      nothingAround: 'आसपास कुछ नहीं मिला',
+      calibrated: 'कैलिब्रेट हो गया',
+      noPerson: 'कोई व्यक्ति नहीं दिख रहा',
+      setupIntro: 'एक बार का सेटअप। इंस्टॉल वॉइस दबाएँ, फिर अपनी भाषा चुनें।',
+      voicesInstalled: 'अब टेस्ट वॉइस दबाएँ।',
+      voiceTest: 'आवाज़ काम कर रही है। सेटअप पूरा।',
+      setupDone: 'सेटअप पूरा। अब इंटरनेट की ज़रूरत नहीं।',
+      sosPrompt: 'क्या आप ठीक हैं? रद्द करने के लिए स्क्रीन दबाएँ, नहीं तो पंद्रह सेकंड में मदद का संदेश जाएगा।',
+      sosSent: 'मदद का संदेश भेज दिया गया।',
+      sosFailed: 'मदद का संदेश नहीं भेजा जा सका।',
+      sosCancelled: 'रद्द किया गया।',
+      noSosNumber: 'आपातकालीन नंबर सेव नहीं है। सेटिंग्स में जोड़ें।',
+      cameraFailed: 'कैमरा शुरू नहीं हुआ। कैमरा की अनुमति दें।',
+      modelMissing: 'पहचान शुरू नहीं हो सकी। ऐप दोबारा इंस्टॉल करें।',
+      voiceMissing: 'यह आवाज़ इंस्टॉल नहीं है। सेटिंग्स खोलें और ऑफ़लाइन वॉइस इंस्टॉल करें।',
+      languageName: 'हिन्दी',
+      batteryLow: 'बैटरी {n} प्रतिशत। जल्दी चार्ज करें।',
+      batteryCritical: 'बैटरी {n} प्रतिशत। अभी चार्ज करें।',
+      cameraBlocked: 'कैमरा ढका है। लेंस साफ़ करें।',
+      tooDark: 'कैमरा देख नहीं पा रहा। चेतावनियाँ छूट सकती हैं।',
+      cameraClear: 'कैमरा साफ़।',
+      helpPrompt: 'मदद माँगी जा रही है। रद्द करने के लिए दबाएँ।',
+      stillPrompt: 'आप तीस सेकंड से हिले नहीं। क्या आप ठीक हैं? रद्द करने के लिए स्क्रीन दबाएँ।',
+      callOffer: 'अपने संपर्क को कॉल करने के लिए कहीं भी दबाएँ।',
+      shortcutHelp:
+        'इस सूची में सेकंड साइट खोलें और उसका शॉर्टकट चालू करें। फिर दोनों वॉल्यूम बटन दबाकर रखने से ऐप खुल जाएगा।',
+      detectionSlow: 'पहचान धीमी है। चेतावनियाँ देर से आ सकती हैं।',
+      crowded: 'आगे भीड़ है।',
+      calling1: 'पहले संपर्क को कॉल कर रहे हैं।',
+      calling2: 'दूसरे संपर्क को कॉल कर रहे हैं।',
+      calling3: 'तीसरे संपर्क को कॉल कर रहे हैं।',
+      noAnswer: 'जवाब नहीं मिला।',
+      callEnded: 'कॉल पूरे हुए।',
+      nobodyAnswered: 'किसी ने जवाब नहीं दिया।',
+      callFailed: 'कॉल नहीं हो सका।',
+      callingStopped: 'कॉल करना बंद किया।',
+      waitingForCall: 'चल रहे कॉल के खत्म होने का इंतज़ार है।',
+    },
+  },
+  ta: {
+    tag: 'ta-IN',
+    sideFirst: true,
+    extra: {
+      'traffic light': 'போக்குவரத்து விளக்கு',
+      'stop sign': 'நிறுத்த பலகை',
+      bench: 'பெஞ்ச்',
+      chair: 'நாற்காலி',
+      'fire hydrant': 'தீ அணைப்பு குழாய்',
+      'potted plant': 'பூந்தொட்டி',
+      'dining table': 'மேசை',
+      umbrella: 'குடை',
+      backpack: 'பை',
+      handbag: 'கைப்பை',
+      suitcase: 'சூட்கேஸ்',
+      bottle: 'பாட்டில்',
+      'cell phone': 'போன்',
+      cat: 'பூனை',
+      horse: 'குதிரை',
+      bird: 'பறவை',
+      bed: 'படுக்கை',
+      toilet: 'கழிப்பறை',
+    },
+    also: 'மேலும்',
+    textSays: 'எழுதியிருப்பது',
+    label: {
+      person: 'நபர்',
+      car: 'கார்',
+      motorcycle: 'பைக்',
+      bicycle: 'சைக்கிள்',
+      bus: 'பேருந்து',
+      truck: 'லாரி',
+      dog: 'நாய்',
+      cow: 'மாடு',
+    },
+    plural: {
+      person: 'நபர்கள்',
+      car: 'கார்கள்',
+      motorcycle: 'பைக்குகள்',
+      bicycle: 'சைக்கிள்கள்',
+      bus: 'பேருந்துகள்',
+      truck: 'லாரிகள்',
+      dog: 'நாய்கள்',
+      cow: 'மாடுகள்',
+    },
+    side: { left: 'இடதுபுறம்', ahead: 'முன்னால்', right: 'வலதுபுறம்' },
+    range: { oneStep: 'ஒரு அடி', twoSteps: 'இரண்டு அடி', close: 'அருகில்', metres: '', far: 'தொலைவில்' },
+    metres: n => `${n} மீட்டர்`,
+    andMore: n => `மேலும் ${n}`,
+    guide: { left: 'இடதுபுறம் நகருங்கள்', right: 'வலதுபுறம் நகருங்கள்', stop: 'நில்லுங்கள்' },
+    approaching: 'வருகிறது',
+    phrase: {
+      ready: 'செகண்ட் சைட் தயார்',
+      stopped: 'நிறுத்தப்பட்டது',
+      nothingAround: 'சுற்றிலும் எதுவும் இல்லை',
+      calibrated: 'அளவீடு முடிந்தது',
+      noPerson: 'யாரும் தெரியவில்லை',
+      setupIntro: 'ஒருமுறை அமைப்பு. குரல்களை நிறுவு என்பதைத் தட்டி, உங்கள் மொழியைத் தேர்ந்தெடுக்கவும்.',
+      voicesInstalled: 'இப்போது குரலைச் சோதி என்பதைத் தட்டவும்.',
+      voiceTest: 'குரல் வேலை செய்கிறது. அமைப்பு முடிந்தது.',
+      setupDone: 'அமைப்பு முடிந்தது. இனி இணையம் தேவையில்லை.',
+      sosPrompt:
+        'நீங்கள் நலமா? ரத்து செய்ய திரையைத் தட்டவும், இல்லையெனில் பதினைந்து வினாடிகளில் உதவிச் செய்தி அனுப்பப்படும்.',
+      sosSent: 'உதவிச் செய்தி அனுப்பப்பட்டது.',
+      sosFailed: 'உதவிச் செய்தியை அனுப்ப முடியவில்லை.',
+      sosCancelled: 'ரத்து செய்யப்பட்டது.',
+      noSosNumber: 'அவசர எண் சேமிக்கப்படவில்லை. அமைப்புகளில் சேர்க்கவும்.',
+      cameraFailed: 'கேமரா தொடங்கவில்லை. கேமரா அனுமதியை வழங்கவும்.',
+      modelMissing: 'கண்டறிதல் தொடங்கவில்லை. செயலியை மீண்டும் நிறுவவும்.',
+      voiceMissing: 'அந்தக் குரல் நிறுவப்படவில்லை. அமைப்புகளில் ஆஃப்லைன் குரல்களை நிறுவவும்.',
+      languageName: 'தமிழ்',
+      batteryLow: 'பேட்டரி {n} சதவீதம். விரைவில் சார்ஜ் செய்யவும்.',
+      batteryCritical: 'பேட்டரி {n} சதவீதம். இப்போதே சார்ஜ் செய்யவும்.',
+      cameraBlocked: 'கேமரா மறைக்கப்பட்டுள்ளது. லென்ஸைச் சுத்தம் செய்யவும்.',
+      tooDark: 'கேமராவுக்குத் தெரியவில்லை. எச்சரிக்கைகள் தவறலாம்.',
+      cameraClear: 'கேமரா தெளிவு.',
+      helpPrompt: 'உதவி கேட்கப்படுகிறது. ரத்து செய்ய தட்டவும்.',
+      stillPrompt: 'நீங்கள் முப்பது வினாடிகளாக அசையவில்லை. நலமா? ரத்து செய்ய திரையைத் தட்டவும்.',
+      callOffer: 'உங்கள் தொடர்புக்கு அழைக்க எங்கும் தட்டவும்.',
+      shortcutHelp:
+        'இந்தப் பட்டியலில் செகண்ட் சைட்டைத் திறந்து அதன் ஷார்ட்கட்டை இயக்கவும். பிறகு இரண்டு ஒலி பொத்தான்களையும் அழுத்திப் பிடித்தால் செயலி திறக்கும்.',
+      detectionSlow: 'கண்டறிதல் மெதுவாக உள்ளது. எச்சரிக்கைகள் தாமதமாகலாம்.',
+      crowded: 'முன்னால் கூட்டம்.',
+      calling1: 'முதல் தொடர்பை அழைக்கிறோம்.',
+      calling2: 'இரண்டாவது தொடர்பை அழைக்கிறோம்.',
+      calling3: 'மூன்றாவது தொடர்பை அழைக்கிறோம்.',
+      noAnswer: 'பதில் இல்லை.',
+      callEnded: 'அழைப்புகள் முடிந்தன.',
+      nobodyAnswered: 'யாரும் பதிலளிக்கவில்லை.',
+      callFailed: 'அழைக்க முடியவில்லை.',
+      callingStopped: 'அழைப்பது நிறுத்தப்பட்டது.',
+      waitingForCall: 'தற்போதைய அழைப்பு முடியும் வரை காத்திருக்கிறோம்.',
+    },
+  },
+  kn: {
+    tag: 'kn-IN',
+    sideFirst: true,
+    extra: {
+      'traffic light': 'ಟ್ರಾಫಿಕ್ ಲೈಟ್',
+      'stop sign': 'ನಿಲ್ಲಿಸಿ ಫಲಕ',
+      bench: 'ಬೆಂಚ್',
+      chair: 'ಕುರ್ಚಿ',
+      'fire hydrant': 'ಅಗ್ನಿಶಾಮಕ ನಲ್ಲಿ',
+      'potted plant': 'ಹೂಕುಂಡ',
+      'dining table': 'ಮೇಜು',
+      umbrella: 'ಛತ್ರಿ',
+      backpack: 'ಬ್ಯಾಗ್',
+      handbag: 'ಕೈಚೀಲ',
+      suitcase: 'ಸೂಟ್‌ಕೇಸ್',
+      bottle: 'ಬಾಟಲಿ',
+      'cell phone': 'ಫೋನ್',
+      cat: 'ಬೆಕ್ಕು',
+      horse: 'ಕುದುರೆ',
+      bird: 'ಹಕ್ಕಿ',
+      bed: 'ಹಾಸಿಗೆ',
+      toilet: 'ಶೌಚಾಲಯ',
+    },
+    also: 'ಜೊತೆಗೆ',
+    textSays: 'ಬರೆದಿರುವುದು',
+    label: {
+      person: 'ವ್ಯಕ್ತಿ',
+      car: 'ಕಾರು',
+      motorcycle: 'ಬೈಕ್',
+      bicycle: 'ಸೈಕಲ್',
+      bus: 'ಬಸ್',
+      truck: 'ಲಾರಿ',
+      dog: 'ನಾಯಿ',
+      cow: 'ಹಸು',
+    },
+    plural: {
+      person: 'ಜನರು',
+      car: 'ಕಾರುಗಳು',
+      motorcycle: 'ಬೈಕ್‌ಗಳು',
+      bicycle: 'ಸೈಕಲ್‌ಗಳು',
+      bus: 'ಬಸ್‌ಗಳು',
+      truck: 'ಲಾರಿಗಳು',
+      dog: 'ನಾಯಿಗಳು',
+      cow: 'ಹಸುಗಳು',
+    },
+    side: { left: 'ಎಡಕ್ಕೆ', ahead: 'ಮುಂದೆ', right: 'ಬಲಕ್ಕೆ' },
+    range: { oneStep: 'ಒಂದು ಹೆಜ್ಜೆ', twoSteps: 'ಎರಡು ಹೆಜ್ಜೆ', close: 'ಹತ್ತಿರ', metres: '', far: 'ದೂರ' },
+    metres: n => `${n} ಮೀಟರ್`,
+    andMore: n => `ಇನ್ನೂ ${n}`,
+    guide: { left: 'ಎಡಕ್ಕೆ ಸರಿಯಿರಿ', right: 'ಬಲಕ್ಕೆ ಸರಿಯಿರಿ', stop: 'ನಿಲ್ಲಿ' },
+    approaching: 'ಬರುತ್ತಿದೆ',
+    phrase: {
+      ready: 'ಸೆಕೆಂಡ್ ಸೈಟ್ ಸಿದ್ಧ',
+      stopped: 'ನಿಲ್ಲಿಸಲಾಗಿದೆ',
+      nothingAround: 'ಸುತ್ತಲೂ ಏನೂ ಕಾಣುತ್ತಿಲ್ಲ',
+      calibrated: 'ಮಾಪನ ಮುಗಿದಿದೆ',
+      noPerson: 'ಯಾರೂ ಕಾಣುತ್ತಿಲ್ಲ',
+      setupIntro: 'ಒಂದು ಬಾರಿಯ ಸೆಟಪ್. ಧ್ವನಿಗಳನ್ನು ಸ್ಥಾಪಿಸಿ ಒತ್ತಿ, ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ.',
+      voicesInstalled: 'ಈಗ ಧ್ವನಿ ಪರೀಕ್ಷಿಸಿ ಒತ್ತಿ.',
+      voiceTest: 'ಧ್ವನಿ ಕೆಲಸ ಮಾಡುತ್ತಿದೆ. ಸೆಟಪ್ ಮುಗಿದಿದೆ.',
+      setupDone: 'ಸೆಟಪ್ ಮುಗಿದಿದೆ. ಇನ್ನು ಇಂಟರ್ನೆಟ್ ಬೇಕಿಲ್ಲ.',
+      sosPrompt:
+        'ನೀವು ಚೆನ್ನಾಗಿದ್ದೀರಾ? ರದ್ದುಮಾಡಲು ಪರದೆಯನ್ನು ಒತ್ತಿ, ಇಲ್ಲದಿದ್ದರೆ ಹದಿನೈದು ಸೆಕೆಂಡುಗಳಲ್ಲಿ ಸಹಾಯ ಸಂದೇಶ ಹೋಗುತ್ತದೆ.',
+      sosSent: 'ಸಹಾಯ ಸಂದೇಶ ಕಳುಹಿಸಲಾಗಿದೆ.',
+      sosFailed: 'ಸಹಾಯ ಸಂದೇಶ ಕಳುಹಿಸಲು ಆಗಲಿಲ್ಲ.',
+      sosCancelled: 'ರದ್ದುಮಾಡಲಾಗಿದೆ.',
+      noSosNumber: 'ತುರ್ತು ಸಂಖ್ಯೆ ಉಳಿಸಿಲ್ಲ. ಸೆಟ್ಟಿಂಗ್ಸ್‌ನಲ್ಲಿ ಸೇರಿಸಿ.',
+      cameraFailed: 'ಕ್ಯಾಮೆರಾ ಶುರುವಾಗಲಿಲ್ಲ. ಕ್ಯಾಮೆರಾ ಅನುಮತಿ ನೀಡಿ.',
+      modelMissing: 'ಪತ್ತೆ ಶುರುವಾಗಲಿಲ್ಲ. ಆ್ಯಪ್ ಮತ್ತೆ ಸ್ಥಾಪಿಸಿ.',
+      voiceMissing: 'ಆ ಧ್ವನಿ ಸ್ಥಾಪಿಸಿಲ್ಲ. ಸೆಟ್ಟಿಂಗ್ಸ್‌ನಲ್ಲಿ ಆಫ್‌ಲೈನ್ ಧ್ವನಿಗಳನ್ನು ಸ್ಥಾಪಿಸಿ.',
+      languageName: 'ಕನ್ನಡ',
+      batteryLow: 'ಬ್ಯಾಟರಿ {n} ಶೇಕಡಾ. ಬೇಗ ಚಾರ್ಜ್ ಮಾಡಿ.',
+      batteryCritical: 'ಬ್ಯಾಟರಿ {n} ಶೇಕಡಾ. ಈಗಲೇ ಚಾರ್ಜ್ ಮಾಡಿ.',
+      cameraBlocked: 'ಕ್ಯಾಮೆರಾ ಮುಚ್ಚಿದೆ. ಲೆನ್ಸ್ ಸ್ವಚ್ಛಗೊಳಿಸಿ.',
+      tooDark: 'ಕ್ಯಾಮೆರಾಗೆ ಕಾಣುತ್ತಿಲ್ಲ. ಎಚ್ಚರಿಕೆಗಳು ತಪ್ಪಬಹುದು.',
+      cameraClear: 'ಕ್ಯಾಮೆರಾ ಸ್ಪಷ್ಟ.',
+      helpPrompt: 'ಸಹಾಯ ಕೇಳಲಾಗುತ್ತಿದೆ. ರದ್ದುಮಾಡಲು ಒತ್ತಿ.',
+      stillPrompt: 'ನೀವು ಮೂವತ್ತು ಸೆಕೆಂಡುಗಳಿಂದ ಅಲುಗಾಡಿಲ್ಲ. ಚೆನ್ನಾಗಿದ್ದೀರಾ? ರದ್ದುಮಾಡಲು ಪರದೆಯನ್ನು ಒತ್ತಿ.',
+      callOffer: 'ನಿಮ್ಮ ಸಂಪರ್ಕಕ್ಕೆ ಕರೆ ಮಾಡಲು ಎಲ್ಲಿಯಾದರೂ ಒತ್ತಿ.',
+      shortcutHelp:
+        'ಈ ಪಟ್ಟಿಯಲ್ಲಿ ಸೆಕೆಂಡ್ ಸೈಟ್ ತೆರೆದು ಅದರ ಶಾರ್ಟ್‌ಕಟ್ ಆನ್ ಮಾಡಿ. ನಂತರ ಎರಡೂ ವಾಲ್ಯೂಮ್ ಬಟನ್ ಒತ್ತಿ ಹಿಡಿದರೆ ಆ್ಯಪ್ ತೆರೆಯುತ್ತದೆ.',
+      detectionSlow: 'ಪತ್ತೆ ನಿಧಾನವಾಗಿದೆ. ಎಚ್ಚರಿಕೆಗಳು ತಡವಾಗಬಹುದು.',
+      crowded: 'ಮುಂದೆ ಜನಸಂದಣಿ.',
+      calling1: 'ಮೊದಲ ಸಂಪರ್ಕಕ್ಕೆ ಕರೆ ಮಾಡುತ್ತಿದ್ದೇವೆ.',
+      calling2: 'ಎರಡನೇ ಸಂಪರ್ಕಕ್ಕೆ ಕರೆ ಮಾಡುತ್ತಿದ್ದೇವೆ.',
+      calling3: 'ಮೂರನೇ ಸಂಪರ್ಕಕ್ಕೆ ಕರೆ ಮಾಡುತ್ತಿದ್ದೇವೆ.',
+      noAnswer: 'ಉತ್ತರವಿಲ್ಲ.',
+      callEnded: 'ಕರೆಗಳು ಮುಗಿದಿವೆ.',
+      nobodyAnswered: 'ಯಾರೂ ಉತ್ತರಿಸಲಿಲ್ಲ.',
+      callFailed: 'ಕರೆ ಮಾಡಲು ಆಗಲಿಲ್ಲ.',
+      callingStopped: 'ಕರೆ ಮಾಡುವುದನ್ನು ನಿಲ್ಲಿಸಲಾಗಿದೆ.',
+      waitingForCall: 'ಈಗಿನ ಕರೆ ಮುಗಿಯುವವರೆಗೆ ಕಾಯುತ್ತಿದ್ದೇವೆ.',
     },
   },
 }
@@ -218,7 +582,7 @@ function rangeWords(metres: number, lang: Lang): string {
 export function sentence(t: Target, lang: Lang): string {
   const w = WORDS[lang]
   const range = rangeWords(t.distance, lang)
-  if (lang === 'te')
+  if (w.sideFirst)
     return t.approaching
       ? `${w.side[t.side]} ${w.label[t.label]} ${w.approaching}, ${range}`
       : `${w.side[t.side]} ${w.label[t.label]}, ${range}`
@@ -244,10 +608,40 @@ export function scanSentence(targets: Target[], lang: Lang): string {
   const parts = shown.map(({ t, n }) => {
     const noun = n > 1 ? `${n} ${w.plural[t.label]}` : w.label[t.label]
     const range = rangeWords(t.distance, lang)
-    return lang === 'te' ? `${w.side[t.side]} ${noun}, ${range}` : `${noun} ${w.side[t.side]}, ${range}`
+    return w.sideFirst ? `${w.side[t.side]} ${noun}, ${range}` : `${noun} ${w.side[t.side]}, ${range}`
   })
   if (rest > 0) parts.push(w.andMore(rest))
   return parts.join('. ')
+}
+
+// "What is around me": the warning objects with where and how far, other things by name, then any readable text.
+export function describeSentence(targets: Target[], extras: ExtraClass[], text: string | null, lang: Lang): string {
+  const w = WORDS[lang]
+  const objects = targets.length ? scanSentence(targets, lang) : ''
+  const names = extras.map(e => w.extra[e]).join(', ')
+  const others = names ? (objects ? `${w.also}: ${names}` : names) : ''
+  const reading = text ? `${w.textSays}: ${text}` : ''
+  const parts = [objects, others, reading].filter(Boolean)
+  return parts.length ? parts.join('. ') : w.phrase.nothingAround
+}
+
+// Which of the translated languages this phone can speak offline right now. English is always offered.
+export async function installedLangs(): Promise<Lang[]> {
+  const found: Lang[] = []
+  for (const l of LANGS) {
+    if (l === 'en') {
+      found.push(l)
+      continue
+    }
+    try {
+      if (Capacitor.isNativePlatform()) {
+        if ((await TextToSpeech.isLanguageSupported({ lang: WORDS[l].tag })).supported) found.push(l)
+      } else if (speechSynthesis.getVoices().some(v => v.lang.toLowerCase().startsWith(l))) found.push(l)
+    } catch {
+      /* engine not ready: leave it out */
+    }
+  }
+  return found
 }
 
 export function phrase(key: Phrase, lang: Lang): string {

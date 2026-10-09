@@ -13,10 +13,11 @@ import { useSos } from './features/safety/useSos'
 import { SettingsDialog } from './features/settings/SettingsDialog'
 import { SetupDialog } from './features/settings/SetupDialog'
 import { contactsOf, MAX_CONTACTS, useSettings } from './features/settings/settings'
-import { announce, phrase, setVoiceFailureHandler, speak, type Lang } from './features/speech/speech'
+import { announce, installedLangs, phrase, setVoiceFailureHandler, speak, type Lang } from './features/speech/speech'
+import { useSigns } from './features/signs/useSigns'
 import { useDetection } from './features/vision/useDetection'
 import { requestAlertPermissions } from './native/calls'
-import { isNative, onVolumeDouble, onVolumeDownHold } from './native/setup'
+import { isNative, onAutostart, onVolumeDouble, onVolumeDownHold, setWatching } from './native/setup'
 import { color, radius } from './theme'
 import { Bubble, Glass } from './ui/bubbles'
 import { GlobeIcon, ScanIcon, SettingsIcon, WearFigure } from './ui/icons'
@@ -45,6 +46,7 @@ export function App() {
   const alertBusy = sos.state === 'countdown' || sos.state === 'sending' || sos.state === 'calling'
   const detection = useDetection(camera.videoRef, canvasRef, running && !alertBusy, lang)
   const { model } = detection
+  useSigns(camera.videoRef, running && !alertBusy, lang)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [setupOpen, setSetupOpen] = useState(!settings.setupDone)
   const lastTapRef = useRef(0)
@@ -77,6 +79,22 @@ export function App() {
     return () => setVoiceFailureHandler(null)
   }, [])
 
+  // Languages whose voice is installed on this phone (rechecked when returning from Android's voice download screen).
+  const [langs, setLangs] = useState<Lang[]>(['en', settings.lang])
+  useEffect(() => {
+    const refresh = () =>
+      void installedLangs().then(found => setLangs(found.includes(settings.lang) ? found : [...found, settings.lang]))
+    refresh()
+    document.addEventListener('visibilitychange', refresh)
+    return () => document.removeEventListener('visibilitychange', refresh)
+  }, [settings.lang])
+  const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length] ?? 'en'
+
+  // Screen on (and dimmed) only while the camera is watching; the phone's own timeout applies otherwise.
+  useEffect(() => {
+    void setWatching(running, settings.dim)
+  }, [running, settings.dim])
+
   // Saying the language's name in its own voice confirms the switch, and shows up a missing voice at once.
   const changeLang = (next: Lang) => {
     setVoiceFallback(false)
@@ -93,7 +111,7 @@ export function App() {
   useEffect(() => onVolumeDouble(() => void scan()), [scan])
   const onVideoTap = () => {
     const now = performance.now()
-    if (now - lastTapRef.current < 400) scan()
+    if (now - lastTapRef.current < 400) void scan()
     lastTapRef.current = now
   }
 
@@ -103,6 +121,24 @@ export function App() {
     if (!running || !isNative) return
     return watchFalls(kind => startSos(kind === 'impact' ? 'fall' : 'lyingStill'))
   }, [running, startSos])
+
+  // Opened by the accessibility shortcut: start straight away, unless setup still needs a sighted helper.
+  const startRef = useRef(start)
+  startRef.current = start
+  const runningRef = useRef(running)
+  runningRef.current = running
+  const scanRef = useRef(detection.scan)
+  scanRef.current = detection.scan
+  useEffect(
+    () =>
+      onAutostart(() => {
+        if (!settings.setupDone) return
+        // Already watching: the same shortcut asks "what is around me".
+        if (runningRef.current) void scanRef.current()
+        else void startRef.current()
+      }),
+    [settings.setupDone]
+  )
 
   // Asking for help on purpose: hold volume-down for 2 s, or the Help button, whether or not the camera is running.
   useEffect(() => onVolumeDownHold(() => startSos('manual')), [startSos])
@@ -253,7 +289,7 @@ export function App() {
           data-testid="scan"
           aria-label={s.scanLabel}
           disabled={!running || model !== 'ready'}
-          onClick={() => scan()}
+          onClick={() => void scan()}
           sx={{ flex: 1, px: 1.5 }}
         >
           <ScanIcon />
@@ -262,7 +298,7 @@ export function App() {
         <Bubble
           data-testid="lang-toggle"
           aria-label={s.switchLanguage}
-          onClick={() => changeLang(lang === 'en' ? 'te' : 'en')}
+          onClick={() => changeLang(nextLang)}
           sx={{ flex: 1, px: 1.5 }}
         >
           <GlobeIcon />
@@ -306,6 +342,9 @@ export function App() {
       <SettingsDialog
         open={settingsOpen}
         lang={lang}
+        langs={langs}
+        dim={settings.dim}
+        onDim={dim => update({ dim })}
         sosNumbers={settings.sosNumbers}
         k={detection.k}
         fps={detection.fps}
