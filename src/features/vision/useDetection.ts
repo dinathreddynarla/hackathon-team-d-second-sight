@@ -1,9 +1,9 @@
-import type { ObjectDetector } from '@mediapipe/tasks-vision'
-import { useEffect, useRef, useState, type RefObject } from 'react'
+import type { Detection, ObjectDetector } from '@mediapipe/tasks-vision'
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 
-import { warn, type Lang } from '../speech/speech'
+import { scanSentence, speak, warn, type Lang } from '../speech/speech'
 import { createDetector, preferredDelegate } from './detector'
-import { analyse, calibrateK, loadK, saveK, type Target } from './distance'
+import { analyse, analyseAll, calibrateK, loadK, saveK, type Target } from './distance'
 
 export type ModelState = 'loading' | 'ready' | 'missing'
 
@@ -19,6 +19,7 @@ export function useDetection(
   const langRef = useRef(lang)
   langRef.current = lang
   const lastRatioRef = useRef(0)
+  const lastDetectionsRef = useRef<Detection[]>([])
   const [model, setModel] = useState<ModelState>('loading')
   const [lastSaid, setLastSaid] = useState('')
   const [fps, setFps] = useState(0)
@@ -53,6 +54,7 @@ export function useDetection(
       if (now <= lastTs) return // MediaPipe needs strictly increasing timestamps
       lastTs = now
       const { detections } = detector.detectForVideo(video, now)
+      lastDetectionsRef.current = detections
       if (window.__ss)
         window.__ss.last = { n: detections.length, labels: detections.map(d => d.categories[0]?.categoryName ?? '?') }
       const target = analyse(detections, video.videoWidth, video.videoHeight, kRef.current, now)
@@ -70,7 +72,10 @@ export function useDetection(
       }
     }
     const id = setInterval(tick, 100)
-    return () => clearInterval(id)
+    return () => {
+      clearInterval(id)
+      lastDetectionsRef.current = []
+    }
   }, [running, model, videoRef, canvasRef])
 
   const calibrate = () => {
@@ -80,7 +85,18 @@ export function useDetection(
     return true
   }
 
-  return { model, lastSaid, fps, calibrate, k: kRef.current }
+  // "Scan once": one sentence for everything in the current frame, on demand.
+  const scan = useCallback(() => {
+    const video = videoRef.current
+    if (!video || video.videoWidth === 0) return ''
+    const targets = analyseAll(lastDetectionsRef.current, video.videoWidth, video.videoHeight, kRef.current)
+    const text = scanSentence(targets, langRef.current)
+    void speak(text, langRef.current)
+    setLastSaid(text)
+    return text
+  }, [videoRef])
+
+  return { model, lastSaid, fps, calibrate, scan, k: kRef.current }
 }
 
 function draw(canvas: HTMLCanvasElement, video: HTMLVideoElement, target: Target | null) {

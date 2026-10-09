@@ -1,7 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { FilesetResolver, ObjectDetector } from '@mediapipe/tasks-vision'
 
-export const TARGET_CLASSES = ['person', 'car', 'motorcycle', 'bicycle', 'bus', 'truck'] as const
+export const TARGET_CLASSES = ['person', 'car', 'motorcycle', 'bicycle', 'bus', 'truck', 'dog', 'cow'] as const
 export type TargetClass = (typeof TARGET_CLASSES)[number]
 
 // Runtime and model are served from public/, relative to index.html, so the APK carries them.

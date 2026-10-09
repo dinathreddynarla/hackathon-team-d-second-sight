@@ -8,8 +8,10 @@ export function useCamera() {
   const streamRef = useRef<MediaStream | null>(null)
   const [state, setState] = useState<CameraState>('idle')
   const [error, setError] = useState<string | null>(null)
+  const wasRunningRef = useRef(false)
 
   const stop = useCallback(() => {
+    wasRunningRef.current = false
     streamRef.current?.getTracks().forEach(track => track.stop())
     streamRef.current = null
     if (videoRef.current) videoRef.current.srcObject = null
@@ -29,6 +31,7 @@ export function useCamera() {
       if (!video) throw new Error('video element missing')
       video.srcObject = stream
       await video.play()
+      wasRunningRef.current = true
       setState('running')
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -36,16 +39,23 @@ export function useCamera() {
     }
   }, [])
 
+  // Power button or app switch: release the camera; on return, restart it without a tap.
   useEffect(() => {
     const onVisibility = () => {
-      if (document.hidden) stop()
+      if (document.hidden) {
+        const resume = wasRunningRef.current
+        stop()
+        wasRunningRef.current = resume
+      } else if (wasRunningRef.current) {
+        void start()
+      }
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => {
       document.removeEventListener('visibilitychange', onVisibility)
       stop()
     }
-  }, [stop])
+  }, [stop, start])
 
   return { videoRef, state, error, start, stop }
 }

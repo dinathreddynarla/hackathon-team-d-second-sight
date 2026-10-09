@@ -19,6 +19,8 @@ const REAL_HEIGHT: Record<TargetClass, number> = {
   bicycle: 1.6,
   bus: 3.0,
   truck: 3.0,
+  dog: 0.5,
+  cow: 1.4,
 }
 
 const K_KEY = 'secondsight.k'
@@ -55,15 +57,9 @@ function isApproaching(label: TargetClass, ratio: number, now: number): boolean 
   return old !== undefined && ratio / old.ratio > 1.2
 }
 
-// Picks the nearest kept detection and turns it into what the user needs to hear.
-export function analyse(
-  detections: Detection[],
-  frameW: number,
-  frameH: number,
-  k: number,
-  now: number
-): Target | null {
-  let best: Target | null = null
+// Every kept detection with its distance and side, for the scan-once summary.
+export function analyseAll(detections: Detection[], frameW: number, frameH: number, k: number): Target[] {
+  const out: Target[] = []
   for (const d of detections) {
     const label = d.categories[0]?.categoryName as TargetClass | undefined
     const bb = d.boundingBox
@@ -80,8 +76,21 @@ export function analyse(
       approaching: false,
       box: { x: bb.originX, y: bb.originY, w: bb.width, h: bb.height },
     }
-    if (!best || target.distance < best.distance) best = target
+    out.push(target)
   }
+  return out
+}
+
+// Picks the nearest kept detection and turns it into what the user needs to hear.
+export function analyse(
+  detections: Detection[],
+  frameW: number,
+  frameH: number,
+  k: number,
+  now: number
+): Target | null {
+  let best: Target | null = null
+  for (const t of analyseAll(detections, frameW, frameH, k)) if (!best || t.distance < best.distance) best = t
   if (best) best.approaching = isApproaching(best.label, best.box.h / frameH, now)
   return best
 }
