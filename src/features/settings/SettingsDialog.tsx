@@ -14,6 +14,7 @@ type Props = {
   onSosNumber: (n: string) => void
   onCalibrate: () => boolean
   onRunSetup: () => void
+  onTestFall: () => void
 }
 
 export function SettingsDialog({
@@ -27,6 +28,7 @@ export function SettingsDialog({
   onSosNumber,
   onCalibrate,
   onRunSetup,
+  onTestFall,
 }: Props) {
   const delegate = (() => {
     try {
@@ -82,6 +84,9 @@ export function SettingsDialog({
           />
           <Button variant="outlined" onClick={onRunSetup} sx={{ minHeight: 56 }}>
             Run setup again
+          </Button>
+          <Button variant="outlined" color="error" onClick={onTestFall} sx={{ minHeight: 56 }}>
+            Test fall alert (15 s countdown)
           </Button>
           <Typography variant="body2" color="text.secondary">
             Detector: {delegate}. Change only for debugging; the app reloads.

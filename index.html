@@ -5,6 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />
     <title>Second Sight</title>
+    <style>
+      /* Android edge-to-edge: keep content clear of the status and navigation bars. */
+      #root {
+        height: 100dvh;
+        box-sizing: border-box;
+        padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+      }
+      .MuiDialog-paperFullScreen {
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        box-sizing: border-box;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

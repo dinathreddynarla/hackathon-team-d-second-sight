@@ -52,7 +52,7 @@ export function App() {
 
   if (sos.state !== 'idle') {
     return (
-      <Stack sx={{ height: '100dvh', p: 2, gap: 2 }}>
+      <Stack sx={{ height: '100%', p: 2, gap: 2 }}>
         <Typography variant="h4" component="h1" sx={{ textAlign: 'center' }}>
           {sos.state === 'countdown'
             ? `Help in ${sos.secondsLeft} s`
@@ -76,7 +76,7 @@ export function App() {
   }
 
   return (
-    <Stack sx={{ height: '100dvh', p: 2, gap: 2 }}>
+    <Stack sx={{ height: '100%', p: 2, gap: 2 }}>
       <Stack direction="row" sx={{ alignItems: 'center' }}>
         <Typography variant="h5" component="h1" sx={{ flex: 1, textAlign: 'center' }}>
           Second Sight
@@ -168,6 +168,10 @@ export function App() {
         onRunSetup={() => {
           setSettingsOpen(false)
           setSetupOpen(true)
+        }}
+        onTestFall={() => {
+          setSettingsOpen(false)
+          sos.start()
         }}
       />
     </Stack>
