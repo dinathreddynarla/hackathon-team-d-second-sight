@@ -1,6 +1,7 @@
 package com.teamd.secondsight;
 
 import android.content.Context;
+import android.content.Intent;
 import android.media.AudioManager;
 import android.os.Bundle;
 import android.os.SystemClock;
@@ -9,6 +10,16 @@ import android.view.WindowManager;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
+    public static final String EXTRA_AUTOSTART = "autostart";
+    // Set when opened by the accessibility shortcut; the page reads it once through SetupPlugin.consumeAutostart().
+    private static boolean pendingAutostart = false;
+
+    static synchronized boolean consumeAutostart() {
+        boolean was = pendingAutostart;
+        pendingAutostart = false;
+        return was;
+    }
+
     private long lastVolumeUp = 0;
     private long volumeDownAt = 0;
     private boolean helpFired = false;
@@ -19,6 +30,28 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         // Android dims and pauses the WebView after the screen timeout; a blind user never touches the screen while walking.
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        handleAutostart(getIntent(), false);
+    }
+
+    // Already open: the shortcut tells the running page directly.
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        handleAutostart(intent, true);
+    }
+
+    // Opened by the shortcut: show over the lock screen and wake the display, so the user never has to unlock first.
+    private void handleAutostart(Intent intent, boolean pageLoaded) {
+        if (intent == null || !intent.getBooleanExtra(EXTRA_AUTOSTART, false)) return;
+        intent.removeExtra(EXTRA_AUTOSTART);
+        setShowWhenLocked(true);
+        setTurnScreenOn(true);
+        // Always keep the request until the page collects it: Android can deliver the shortcut as a new intent before
+        // the page has loaded, and an event fired then is lost. The event only tells an already-loaded page to collect.
+        synchronized (MainActivity.class) {
+            pendingAutostart = true;
+        }
+        if (pageLoaded) getBridge().triggerWindowJSEvent("autostart");
     }
 
     // Volume-up pressed twice within 450 ms fires "volumeDouble" (scan the area once).
