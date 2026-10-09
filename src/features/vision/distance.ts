@@ -46,13 +46,13 @@ export function calibrateK(personBoxRatio: number, trueDistance = 5): number {
   return (trueDistance * personBoxRatio) / REAL_HEIGHT.person
 }
 
-const history: Partial<Record<TargetClass, { t: number; ratio: number }[]>> = {}
+const history: Record<string, { t: number; ratio: number }[]> = {}
 
 // Box grew more than 20% versus ~0.7 s ago means the object is coming closer.
-function isApproaching(label: TargetClass, ratio: number, now: number): boolean {
-  const h = (history[label] ?? []).filter(e => now - e.t < 1500)
+function isApproaching(key: string, ratio: number, now: number): boolean {
+  const h = (history[key] ?? []).filter(e => now - e.t < 1500)
   h.push({ t: now, ratio })
-  history[label] = h
+  history[key] = h
   const old = h.find(e => now - e.t >= 700)
   return old !== undefined && ratio / old.ratio > 1.2
 }
@@ -81,7 +81,7 @@ export function analyseAll(detections: Detection[], frameW: number, frameH: numb
   return out
 }
 
-// Picks the nearest kept detection and turns it into what the user needs to hear.
+// The thing to warn about: the nearest MOVING object beats any static one; otherwise the nearest.
 export function analyse(
   detections: Detection[],
   frameW: number,
@@ -89,8 +89,13 @@ export function analyse(
   k: number,
   now: number
 ): Target | null {
+  const all = analyseAll(detections, frameW, frameH, k)
+  for (const t of all) t.approaching = isApproaching(`${t.label}:${t.side}`, t.box.h / frameH, now)
   let best: Target | null = null
-  for (const t of analyseAll(detections, frameW, frameH, k)) if (!best || t.distance < best.distance) best = t
-  if (best) best.approaching = isApproaching(best.label, best.box.h / frameH, now)
+  for (const t of all) {
+    if (!best) best = t
+    else if (t.approaching !== best.approaching) best = t.approaching ? t : best
+    else if (t.distance < best.distance) best = t
+  }
   return best
 }
