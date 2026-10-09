@@ -13,12 +13,15 @@
     "vendor": "node scripts/copy-vendor.mjs",
     "cap:sync": "pnpm build && cap sync android",
     "android:live": "cap run android -l --external",
-    "apk": "pnpm cap:sync && cd android && ./gradlew assembleDebug && cd .. && adb install -r android/app/build/outputs/apk/debug/app-debug.apk"
+    "apk": "pnpm cap:sync && cd android && ./gradlew assembleDebug && cd .. && adb install -r android/app/build/outputs/apk/debug/app-debug.apk",
+    "apk:release": "pnpm cap:sync && cd android && ./gradlew assembleRelease && cd .. && adb install -r android/app/build/outputs/apk/release/app-release.apk"
   },
   "dependencies": {
     "@capacitor-community/text-to-speech": "^8.0.2",
     "@capacitor/android": "^8.5.3",
     "@capacitor/core": "^8.5.3",
+    "@capacitor/geolocation": "^8.2.3",
+    "@capacitor/motion": "^8.0.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mediapipe/tasks-vision": "^1.1.0",
