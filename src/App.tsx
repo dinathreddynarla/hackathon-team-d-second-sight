@@ -13,10 +13,20 @@ import { useSos } from './features/safety/useSos'
 import { SettingsDialog } from './features/settings/SettingsDialog'
 import { SetupDialog } from './features/settings/SetupDialog'
 import { contactsOf, MAX_CONTACTS, useSettings } from './features/settings/settings'
-import { announce, installedLangs, phrase, setVoiceFailureHandler, speak, type Lang } from './features/speech/speech'
+import {
+  announce,
+  installedLangs,
+  isSpeaking,
+  phrase,
+  setVoiceFailureHandler,
+  speak,
+  type Lang,
+} from './features/speech/speech'
 import { useObstacles } from './features/obstacles/useObstacles'
 import { useSigns } from './features/signs/useSigns'
+import { loadGroundOn, saveGroundOn, type GroundHazard } from './features/vision/ground'
 import { useDetection } from './features/vision/useDetection'
+import { useGround } from './features/vision/useGround'
 import { requestAlertPermissions } from './native/calls'
 import { isNative, onAutostart, onVolumeDouble, onVolumeDownHold, setWatching } from './native/setup'
 import { color, radius } from './theme'
@@ -45,8 +55,21 @@ export function App() {
   const sos = useSos(lang, settings.sosNumbers)
   // Detection keeps quiet while the alert is asking, sending or calling, and resumes once the result is showing.
   const alertBusy = sos.state === 'countdown' || sos.state === 'sending' || sos.state === 'calling'
-  const detection = useDetection(camera.videoRef, canvasRef, running && !alertBusy, lang)
+  // Potholes and manholes: a second model beside the first, with its own outline layer over the picture.
+  const groundCanvasRef = useRef<HTMLCanvasElement>(null)
+  const groundHazards = useRef<GroundHazard[]>([])
+  const [groundOn, setGroundOn] = useState(loadGroundOn)
+  const detection = useDetection(camera.videoRef, canvasRef, running && !alertBusy, lang, groundHazards)
   const { model } = detection
+  const ground = useGround(
+    camera.videoRef,
+    groundCanvasRef,
+    running && !alertBusy,
+    groundOn,
+    langRef,
+    groundHazards,
+    detection.show
+  )
   useSigns(camera.videoRef, running && !alertBusy, lang)
   useObstacles(camera.videoRef, running && !alertBusy && settings.walls, lang, detection.targetRef)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -70,6 +93,16 @@ export function App() {
   useEffect(() => {
     if (camera.state === 'running' && model === 'missing') announce('modelMissing', langRef.current)
   }, [camera.state, model])
+  // Pothole warnings that could not start are said too, in the first gap: silence must not pass for a good road.
+  useEffect(() => {
+    if (camera.state !== 'running' || ground !== 'missing') return
+    const id = window.setInterval(() => {
+      if (isSpeaking()) return
+      clearInterval(id)
+      void speak(phrase('groundMissing', langRef.current), langRef.current)
+    }, 400)
+    return () => clearInterval(id)
+  }, [camera.state, ground])
 
   // A voice that cannot speak must not mean silence: say the lost sentence in English, then why, and fall back.
   useEffect(() => {
@@ -210,6 +243,19 @@ export function App() {
         <canvas
           ref={canvasRef}
           aria-hidden
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            pointerEvents: 'none',
+          }}
+        />
+        <canvas
+          ref={groundCanvasRef}
+          aria-hidden
+          data-testid="ground-overlay"
           style={{
             position: 'absolute',
             inset: 0,
@@ -367,6 +413,11 @@ export function App() {
           })
         }
         onCalibrate={detection.calibrate}
+        groundOn={groundOn}
+        onGround={on => {
+          saveGroundOn(on)
+          setGroundOn(on)
+        }}
         onRunSetup={() => {
           setSettingsOpen(false)
           setSetupOpen(true)

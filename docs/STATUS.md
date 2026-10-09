@@ -2,18 +2,19 @@
 
 ## What works (verified)
 
-| Piece                                                                                     | Where                                                                   | Verified how                                                                                            |
-| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| Camera, Start/Stop, status chips                                                          | `src/App.tsx`, `src/features/camera/useCamera.ts`                       | On the iQOO Neo 10 over USB                                                                             |
-| On-device detection, 8 classes (person, car, motorcycle, bicycle, bus, truck, dog, cow)   | `src/features/vision/detector.ts`                                       | Live on the phone: CPU delegate detects, GPU returns nothing in this WebView, so CPU is the APK default |
-| Distance, direction, approaching, nearest-only                                            | `src/features/vision/distance.ts`                                       | Phone caption "person ahead, about 5 metres"                                                            |
-| English + Telugu speech, cooldowns, vibration under 3 m                                   | `src/features/speech/speech.ts`                                         | Plugin path compiled; voice pack test pending on the phone                                              |
-| Scan once (double-tap the view, Scan button, volume-up twice)                             | `useDetection.scan`, `MainActivity.onKeyDown`                           | Headless browser; volume key pending on the phone                                                       |
-| Keep screen on, camera resumes after unlock                                               | `MainActivity.java`, `useCamera.ts`                                     | Compiled; pending on the phone                                                                          |
-| First-run setup (install voices via Android's own TTS screen, test voice, SOS number)     | `src/features/settings/SetupDialog.tsx`, `SetupPlugin.java`             | Headless browser; intent pending on the phone                                                           |
-| Settings (language, calibrate K, voices, SOS number, delegate switch)                     | `src/features/settings/SettingsDialog.tsx`                              | Headless browser                                                                                        |
-| Fall, lying still or Help → countdown → SMS with maps link to 3 contacts → calls in order | `fall.ts`, `useSos.ts`, `SetupPlugin`, `EmergencyCallPlugin`            | Compiled only. Needs a mattress test and a SIM                                                          |
-| Release APK without INTERNET permission                                                   | `android/app/src/main/AndroidManifest.xml`, debug-only manifest adds it | `aapt dump permissions` on both APKs                                                                    |
+| Piece                                                                                                   | Where                                                                   | Verified how                                                                                                     |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Camera, Start/Stop, status chips                                                                        | `src/App.tsx`, `src/features/camera/useCamera.ts`                       | On the iQOO Neo 10 over USB                                                                                      |
+| On-device detection, 8 classes (person, car, motorcycle, bicycle, bus, truck, dog, cow)                 | `src/features/vision/detector.ts`                                       | Live on the phone: CPU delegate detects, GPU returns nothing in this WebView, so CPU is the APK default          |
+| Potholes and manholes: second model in a worker, found-twice rule, distance from camera height and tilt | `src/features/vision/ground.ts`, `groundWorker.ts`, `useGround.ts`      | Headless Chrome with test pictures, dev and production build; `node --test tests/ground.test.ts`. Not on a phone |
+| Distance, direction, approaching, nearest-only                                                          | `src/features/vision/distance.ts`                                       | Phone caption "person ahead, about 5 metres"                                                                     |
+| English + Telugu speech, cooldowns, vibration under 3 m                                                 | `src/features/speech/speech.ts`                                         | Plugin path compiled; voice pack test pending on the phone                                                       |
+| Scan once (double-tap the view, Scan button, volume-up twice)                                           | `useDetection.scan`, `MainActivity.onKeyDown`                           | Headless browser; volume key pending on the phone                                                                |
+| Keep screen on, camera resumes after unlock                                                             | `MainActivity.java`, `useCamera.ts`                                     | Compiled; pending on the phone                                                                                   |
+| First-run setup (install voices via Android's own TTS screen, test voice, SOS number)                   | `src/features/settings/SetupDialog.tsx`, `SetupPlugin.java`             | Headless browser; intent pending on the phone                                                                    |
+| Settings (language, calibrate K, voices, SOS number, delegate switch)                                   | `src/features/settings/SettingsDialog.tsx`                              | Headless browser                                                                                                 |
+| Fall, lying still or Help → countdown → SMS with maps link to 3 contacts → calls in order               | `fall.ts`, `useSos.ts`, `SetupPlugin`, `EmergencyCallPlugin`            | Compiled only. Needs a mattress test and a SIM                                                                   |
+| Release APK without INTERNET permission                                                                 | `android/app/src/main/AndroidManifest.xml`, debug-only manifest adds it | `aapt dump permissions` on both APKs                                                                             |
 
 ## How to analyse the app while it runs on the phone
 
@@ -67,10 +68,17 @@ This is how the GPU-returns-nothing bug was found in under 5 minutes.
 28. Slow detection: on an old or hot phone, is "Detection is slow. Warnings may be late." said when frames per second (Settings, Advanced) fall below 2?
 29. After the calls are over and the result is on screen, hold volume-down again without touching the screen: a new countdown starts at once.
 30. Let the battery fall through 20% while the alert countdown is running: nothing about the battery is said until the alert is over, then it is said once.
+31. Potholes, on a street in daylight: walk towards a real pothole and a real manhole cover. Is "pothole ahead" said, at what distance, and is "two steps" about right? Count the false ones over a 10 minute walk on a good road, on a patched road, across shadows and across wet patches. Decide from that whether it stays on by default.
+32. Pothole speed: Settings, Advanced shows frames per second for the first detector. Is it lower than with Pothole warnings switched off? (The pothole model runs beside it, on another core.) Does the phone get hot over 20 minutes? In a busy scene, is "Pothole warnings are not available." ever said although the model is fine? (It is said when three pictures in a row get no answer within 5 s each.)
+33. Tilt: with the phone hanging naturally, then tipped forward, is the spoken distance to the same pothole still right? The correction assumes the accelerometer reads positive on the screen axis when the camera tips towards the ground.
+34. Flight mode, release APK: the pothole model loads (no "Pothole warnings are not available").
+35. A native Telugu speaker checks "గుంత", "మ్యాన్‌హోల్" and the Pothole warnings text in Settings.
 
 ## Known gaps
 
-- Stairs, poles, potholes: not in the model. Say so.
+- Stairs, kerbs, poles, barriers: no model. A ready-made footpath model was tried and rejected (it calls a staircase flat footpath). Say so.
+- Potholes and manholes: checked only with pictures on the Mac. Distant, dark and rain-blurred potholes are missed; a dark or rough patch can be taken for one; an open manhole and a covered one are both just "manhole".
+- The pothole model's licence is unsettled (its page says CC BY 4.0, the file says AGPL-3.0).
 - GPS first fix in flight mode can take 30 to 60 s.
 - Fall thresholds are untuned. The rule assumes portrait wearing; someone slumped rather than lying down is missed.
 - The SOS SMS is not confirmed as sent, and cannot send without mobile signal (flight mode).

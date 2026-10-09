@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core'
 
 import type { TargetClass } from '../vision/detector'
 import type { Side, Target } from '../vision/distance'
+import type { GroundHazard, GroundKind } from '../vision/ground'
 import { vibrate } from '../../native/vibrate.ts'
 
 // Languages with a full sentence table. A language appears in the app only when its voice is installed on the phone.
@@ -48,6 +49,7 @@ export type Phrase =
   | 'noSosNumber'
   | 'cameraFailed'
   | 'modelMissing'
+  | 'groundMissing'
   | 'voiceMissing'
   | 'languageName'
   | 'batteryLow'
@@ -86,6 +88,8 @@ type Words = {
   andMore: (n: number) => string
   guide: { left: string; right: string; stop: string }
   approaching: string
+  ground: Record<GroundKind, string>
+  groundPlural: Record<GroundKind, string>
   phrase: Record<Phrase, string>
 }
 
@@ -143,6 +147,9 @@ const WORDS: Record<Lang, Words> = {
     andMore: n => `and ${n} more`,
     guide: { left: 'move left', right: 'move right', stop: 'stop' },
     approaching: 'coming',
+    // The model cannot tell an open manhole from a covered one, so it is never called open.
+    ground: { pothole: 'pothole', manhole: 'manhole' },
+    groundPlural: { pothole: 'potholes', manhole: 'manholes' },
     phrase: {
       ready: 'Second Sight ready',
       stopped: 'stopped',
@@ -160,6 +167,7 @@ const WORDS: Record<Lang, Words> = {
       noSosNumber: 'No emergency contact saved. Add one in settings.',
       cameraFailed: 'Camera did not start. Check the camera permission.',
       modelMissing: 'Detection could not start. Reinstall the app.',
+      groundMissing: 'Pothole warnings are not available.',
       voiceMissing: 'That voice is not installed. Open settings and tap install offline voices.',
       languageName: 'English',
       batteryLow: 'Battery {n} percent. Charge soon.',
@@ -238,6 +246,8 @@ const WORDS: Record<Lang, Words> = {
     andMore: n => `ఇంకా ${n}`,
     guide: { left: 'ఎడమకు జరగండి', right: 'కుడికి జరగండి', stop: 'ఆగండి' },
     approaching: 'వస్తోంది',
+    ground: { pothole: 'గుంత', manhole: 'మ్యాన్‌హోల్' },
+    groundPlural: { pothole: 'గుంతలు', manhole: 'మ్యాన్‌హోల్‌లు' },
     phrase: {
       ready: 'సెకండ్ సైట్ సిద్ధం',
       stopped: 'ఆగింది',
@@ -256,6 +266,7 @@ const WORDS: Record<Lang, Words> = {
       noSosNumber: 'అత్యవసర కాంటాక్ట్ సేవ్ కాలేదు. సెట్టింగ్స్‌లో జోడించండి.',
       cameraFailed: 'కెమెరా ప్రారంభం కాలేదు. కెమెరా అనుమతి ఇవ్వండి.',
       modelMissing: 'డిటెక్షన్ ప్రారంభం కాలేదు.',
+      groundMissing: 'గుంతల హెచ్చరికలు అందుబాటులో లేవు.',
       voiceMissing: 'ఆ వాయిస్ ఇన్‌స్టాల్ కాలేదు. సెట్టింగ్స్ తెరిచి, ఇన్‌స్టాల్ ఆఫ్‌లైన్ వాయిసెస్ నొక్కండి.',
       languageName: 'తెలుగు',
       batteryLow: 'బ్యాటరీ {n} శాతం. త్వరలో ఛార్జ్ చేయండి.',
@@ -334,6 +345,8 @@ const WORDS: Record<Lang, Words> = {
     andMore: n => `और ${n}`,
     guide: { left: 'बाईं ओर हटें', right: 'दाईं ओर हटें', stop: 'रुकें' },
     approaching: 'आ रहा है',
+    ground: { pothole: 'गड्ढा', manhole: 'मैनहोल' },
+    groundPlural: { pothole: 'गड्ढे', manhole: 'मैनहोल' },
     phrase: {
       ready: 'सेकंड साइट तैयार',
       stopped: 'रुक गया',
@@ -351,6 +364,7 @@ const WORDS: Record<Lang, Words> = {
       noSosNumber: 'आपातकालीन नंबर सेव नहीं है। सेटिंग्स में जोड़ें।',
       cameraFailed: 'कैमरा शुरू नहीं हुआ। कैमरा की अनुमति दें।',
       modelMissing: 'पहचान शुरू नहीं हो सकी। ऐप दोबारा इंस्टॉल करें।',
+      groundMissing: 'गड्ढों की चेतावनी उपलब्ध नहीं है।',
       voiceMissing: 'यह आवाज़ इंस्टॉल नहीं है। सेटिंग्स खोलें और ऑफ़लाइन वॉइस इंस्टॉल करें।',
       languageName: 'हिन्दी',
       batteryLow: 'बैटरी {n} प्रतिशत। जल्दी चार्ज करें।',
@@ -429,6 +443,8 @@ const WORDS: Record<Lang, Words> = {
     andMore: n => `மேலும் ${n}`,
     guide: { left: 'இடதுபுறம் நகருங்கள்', right: 'வலதுபுறம் நகருங்கள்', stop: 'நில்லுங்கள்' },
     approaching: 'வருகிறது',
+    ground: { pothole: 'குழி', manhole: 'மேன்ஹோல்' },
+    groundPlural: { pothole: 'குழிகள்', manhole: 'மேன்ஹோல்கள்' },
     phrase: {
       ready: 'செகண்ட் சைட் தயார்',
       stopped: 'நிறுத்தப்பட்டது',
@@ -447,6 +463,7 @@ const WORDS: Record<Lang, Words> = {
       noSosNumber: 'அவசர எண் சேமிக்கப்படவில்லை. அமைப்புகளில் சேர்க்கவும்.',
       cameraFailed: 'கேமரா தொடங்கவில்லை. கேமரா அனுமதியை வழங்கவும்.',
       modelMissing: 'கண்டறிதல் தொடங்கவில்லை. செயலியை மீண்டும் நிறுவவும்.',
+      groundMissing: 'குழி எச்சரிக்கைகள் கிடைக்கவில்லை.',
       voiceMissing: 'அந்தக் குரல் நிறுவப்படவில்லை. அமைப்புகளில் ஆஃப்லைன் குரல்களை நிறுவவும்.',
       languageName: 'தமிழ்',
       batteryLow: 'பேட்டரி {n} சதவீதம். விரைவில் சார்ஜ் செய்யவும்.',
@@ -525,6 +542,8 @@ const WORDS: Record<Lang, Words> = {
     andMore: n => `ಇನ್ನೂ ${n}`,
     guide: { left: 'ಎಡಕ್ಕೆ ಸರಿಯಿರಿ', right: 'ಬಲಕ್ಕೆ ಸರಿಯಿರಿ', stop: 'ನಿಲ್ಲಿ' },
     approaching: 'ಬರುತ್ತಿದೆ',
+    ground: { pothole: 'ಗುಂಡಿ', manhole: 'ಮ್ಯಾನ್‌ಹೋಲ್' },
+    groundPlural: { pothole: 'ಗುಂಡಿಗಳು', manhole: 'ಮ್ಯಾನ್‌ಹೋಲ್‌ಗಳು' },
     phrase: {
       ready: 'ಸೆಕೆಂಡ್ ಸೈಟ್ ಸಿದ್ಧ',
       stopped: 'ನಿಲ್ಲಿಸಲಾಗಿದೆ',
@@ -543,6 +562,7 @@ const WORDS: Record<Lang, Words> = {
       noSosNumber: 'ತುರ್ತು ಸಂಖ್ಯೆ ಉಳಿಸಿಲ್ಲ. ಸೆಟ್ಟಿಂಗ್ಸ್‌ನಲ್ಲಿ ಸೇರಿಸಿ.',
       cameraFailed: 'ಕ್ಯಾಮೆರಾ ಶುರುವಾಗಲಿಲ್ಲ. ಕ್ಯಾಮೆರಾ ಅನುಮತಿ ನೀಡಿ.',
       modelMissing: 'ಪತ್ತೆ ಶುರುವಾಗಲಿಲ್ಲ. ಆ್ಯಪ್ ಮತ್ತೆ ಸ್ಥಾಪಿಸಿ.',
+      groundMissing: 'ಗುಂಡಿ ಎಚ್ಚರಿಕೆಗಳು ಲಭ್ಯವಿಲ್ಲ.',
       voiceMissing: 'ಆ ಧ್ವನಿ ಸ್ಥಾಪಿಸಿಲ್ಲ. ಸೆಟ್ಟಿಂಗ್ಸ್‌ನಲ್ಲಿ ಆಫ್‌ಲೈನ್ ಧ್ವನಿಗಳನ್ನು ಸ್ಥಾಪಿಸಿ.',
       languageName: 'ಕನ್ನಡ',
       batteryLow: 'ಬ್ಯಾಟರಿ {n} ಶೇಕಡಾ. ಬೇಗ ಚಾರ್ಜ್ ಮಾಡಿ.',
@@ -612,33 +632,67 @@ export function sentence(t: Target, lang: Lang): string {
   )
 }
 
-// Asked-for summary: groups by object and side with the nearest range, at most three groups, "and N more" for the rest.
-export function scanSentence(targets: Target[], lang: Lang): string {
+// A pothole or manhole: where, then how far. It does not move, so there is no "coming".
+export function groundSentence(h: GroundHazard, lang: Lang): string {
   const w = WORDS[lang]
-  if (targets.length === 0) return w.phrase.nothingAround
-  const groups = new Map<string, { t: Target; n: number }>()
-  for (const t of [...targets].sort((a, b) => a.distance - b.distance)) {
-    const key = `${t.label}:${t.side}`
-    const g = groups.get(key)
+  const range = rangeWords(h.distance, lang)
+  return w.sideFirst
+    ? `${w.side[h.side]} ${w.ground[h.kind]}, ${range}`
+    : `${w.ground[h.kind]} ${w.side[h.side]}, ${range}`
+}
+
+// Asked-for summary: groups by object and side with the nearest range, at most three groups, "and N more" for the rest.
+// What is in the road surface is listed first: it is the one thing in the list the user is about to step on.
+export function scanSentence(targets: Target[], lang: Lang, ground: GroundHazard[] = []): string {
+  const w = WORDS[lang]
+  if (targets.length === 0 && ground.length === 0) return w.phrase.nothingAround
+  type Item = { key: string; one: string; many: string; side: Side; distance: number }
+  const nearestFirst = <T extends { distance: number }>(list: T[]) => [...list].sort((a, b) => a.distance - b.distance)
+  const items: Item[] = [
+    ...nearestFirst(ground).map(h => ({
+      key: `${h.kind}:${h.side}`,
+      one: w.ground[h.kind],
+      many: w.groundPlural[h.kind],
+      side: h.side,
+      distance: h.distance,
+    })),
+    ...nearestFirst(targets).map(t => ({
+      key: `${t.label}:${t.side}`,
+      one: w.label[t.label],
+      many: w.plural[t.label],
+      side: t.side,
+      distance: t.distance,
+    })),
+  ]
+  const groups = new Map<string, { item: Item; n: number }>()
+  for (const item of items) {
+    const g = groups.get(item.key)
     if (g) g.n++
-    else groups.set(key, { t, n: 1 })
+    else groups.set(item.key, { item, n: 1 })
   }
   const all = [...groups.values()]
   const shown = all.slice(0, 3)
   const rest = all.slice(3).reduce((n, g) => n + g.n, 0)
-  const parts = shown.map(({ t, n }) => {
-    const noun = n > 1 ? `${n} ${w.plural[t.label]}` : w.label[t.label]
-    const range = rangeWords(t.distance, lang)
-    return w.sideFirst ? `${w.side[t.side]} ${noun}, ${range}` : `${noun} ${w.side[t.side]}, ${range}`
+  const parts = shown.map(({ item, n }) => {
+    const noun = n > 1 ? `${n} ${item.many}` : item.one
+    const range = rangeWords(item.distance, lang)
+    return w.sideFirst ? `${w.side[item.side]} ${noun}, ${range}` : `${noun} ${w.side[item.side]}, ${range}`
   })
   if (rest > 0) parts.push(w.andMore(rest))
   return parts.join('. ')
 }
 
-// "What is around me": the warning objects with where and how far, other things by name, then any readable text.
-export function describeSentence(targets: Target[], extras: ExtraClass[], text: string | null, lang: Lang): string {
+// "What is around me": what is in the road surface and the warning objects with where and how far, other things by
+// name, then any readable text.
+export function describeSentence(
+  targets: Target[],
+  extras: ExtraClass[],
+  text: string | null,
+  lang: Lang,
+  ground: GroundHazard[] = []
+): string {
   const w = WORDS[lang]
-  const objects = targets.length ? scanSentence(targets, lang) : ''
+  const objects = targets.length || ground.length ? scanSentence(targets, lang, ground) : ''
   const names = extras.map(e => w.extra[e]).join(', ')
   const others = names ? (objects ? `${w.also}: ${names}` : names) : ''
   const reading = text ? `${w.textSays}: ${text}` : ''
@@ -776,7 +830,10 @@ export function forgetWarning(label: string) {
 
 export function pauseWarnings(on: boolean) {
   paused = on
-  if (on) announced.clear()
+  if (on) {
+    announced.clear()
+    groundAnnounced.clear()
+  }
 }
 
 // Threat tier: 0 static and far, 1 moving beyond 5 m, 2 within 5 m, 3 within two steps, 4 one step.
@@ -806,9 +863,39 @@ export function warn(t: Target, lang: Lang, now: number): string | null {
   // Never two sentences within a second unless something is at one step; that is what "right… left" flapping sounds like.
   if (now - lastSpokenAt < 1000 && tier < 4) return null
   lastSpokenAt = now
+  if (t.approaching) lastMovingAt = now
   announced.set(t.label, { side: t.side, bucket, tier, t: now, distance: t.distance })
   const text = sentence(t, lang)
   void speak(text, lang, urgent, `${t.label}:${t.side}`)
   if (t.distance < 3) vibrate(200)
+  return text
+}
+
+// What was last said about the road surface, per kind of hazard.
+const groundAnnounced = new Map<GroundKind, { side: Side; bucket: number; t: number; seen: number }>()
+let lastMovingAt = -1e9
+const MOVING_HOLD_MS = 2500 // how long a "coming" sentence is left alone
+const GROUND_GONE_MS = 3000 // out of view this long, then seen again: that is another one
+
+// A pothole or manhole does not move, so it is said when first seen, again when it is a range nearer or has
+// changed side, and otherwise only after 10 s. Within two steps it cuts in like any warning that close, with one
+// exception: it never talks over a sentence about something that is coming at the user.
+export function warnGround(h: GroundHazard, lang: Lang, now: number): string | null {
+  if (paused) return null
+  const bucket = bucketIndex(h.distance)
+  let prev = groundAnnounced.get(h.kind)
+  if (prev && now - prev.seen > GROUND_GONE_MS) prev = undefined
+  if (prev) prev.seen = now
+  const nearer = !!prev && bucket < prev.bucket
+  const due = !prev || nearer || (prev.side !== h.side && now - prev.t >= 1500) || now - prev.t > 10000
+  if (!due) return null
+  const urgent = h.distance <= 3 && (!prev || nearer) && !(busy && now - lastMovingAt < MOVING_HOLD_MS)
+  if (busy && !urgent) return null
+  if (now - lastSpokenAt < 1000 && h.distance > 1.5) return null
+  lastSpokenAt = now
+  groundAnnounced.set(h.kind, { side: h.side, bucket, t: now, seen: now })
+  const text = groundSentence(h, lang)
+  void speak(text, lang, urgent)
+  if (h.distance < 3) vibrate(200)
   return text
 }
