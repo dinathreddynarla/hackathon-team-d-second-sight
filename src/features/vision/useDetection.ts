@@ -1,7 +1,7 @@
 import type { Detection, ObjectDetector } from '@mediapipe/tasks-vision'
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 
-import { pauseWarnings, scanSentence, speak, warn, type Lang } from '../speech/speech'
+import { pauseWarnings, scanSentence, setCurrentTarget, speak, warn, type Lang } from '../speech/speech'
 import { createDetector, preferredDelegate } from './detector'
 import { analyse, analyseAll, calibrateK, loadK, saveK, type Side, type Target } from './distance'
 
@@ -62,6 +62,7 @@ export function useDetection(
       if (window.__ss)
         window.__ss.last = { n: detections.length, labels: detections.map(d => d.categories[0]?.categoryName ?? '?') }
       const target = analyse(detections, video.videoWidth, video.videoHeight, kRef.current, now)
+      setCurrentTarget(target ? `${target.label}:${target.side}` : null)
       if (window.__ss)
         window.__ss.chosen = target && {
           label: target.label,

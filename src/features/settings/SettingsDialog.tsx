@@ -6,7 +6,7 @@ import { color } from '../../theme'
 import { Group, PageHeader, Row, Segmented } from '../../ui/page'
 import { LANGUAGE_NAME, UI } from '../../ui/strings'
 import { useBackToClose } from '../../ui/useBackToClose'
-import { phrase, speak, type Lang } from '../speech/speech'
+import { announce, type Lang } from '../speech/speech'
 
 type Props = {
   open: boolean
@@ -85,12 +85,7 @@ export function SettingsDialog({
               ]}
             />
           </Box>
-          <Row
-            label={s.testVoice}
-            hint={s.testVoiceHint}
-            testId="test-voice"
-            onClick={() => void speak(phrase('ready', lang), lang)}
-          />
+          <Row label={s.testVoice} hint={s.testVoiceHint} testId="test-voice" onClick={() => announce('ready', lang)} />
           <Row
             label={s.installVoices}
             hint={isNative ? s.installVoicesHint : s.installVoicesBrowser}
@@ -107,7 +102,7 @@ export function SettingsDialog({
             trailing={`K ${k.toFixed(2)}`}
             disabled={!running}
             testId="calibrate"
-            onClick={() => void speak(phrase(onCalibrate() ? 'calibrated' : 'noPerson', lang), lang)}
+            onClick={() => announce(onCalibrate() ? 'calibrated' : 'noPerson', lang)}
           />
         </Group>
 

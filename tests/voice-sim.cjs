@@ -9,13 +9,13 @@ const { chromium } = require(
 )
 
 // Frame is 640x480 (fake camera). Box height from the app's own formula: ratio = realH * K / distance, K = 1.3 default.
-const K = 1.3
+const K = 0.75 // must match DEFAULT_K in src/features/vision/distance.ts
 const REAL = { person: 1.7, car: 1.5, motorcycle: 1.5, bus: 3.0, dog: 0.5 }
 const W = 640,
   H = 480
 function box(label, distance, side, score = 0.8) {
   const h = Math.min(H, ((REAL[label] * K) / distance) * H)
-  const w = Math.min(W, h * (label === 'person' ? 0.35 : label === 'bus' ? 1.2 : 1.1)) // clipped at the frame edge like a real box
+  const w = Math.min(W, h * (label === 'person' ? 0.3 : label === 'bus' ? 0.83 : label === 'dog' ? 0.8 : 1.2)) // real width/height per class // clipped at the frame edge like a real box
   const cx = side === 'left' ? W * 0.17 : side === 'right' ? W * 0.83 : W * 0.5
   return {
     categories: [{ categoryName: label, score }],

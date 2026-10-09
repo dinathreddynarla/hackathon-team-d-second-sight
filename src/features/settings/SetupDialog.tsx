@@ -7,7 +7,7 @@ import { Bubble } from '../../ui/bubbles'
 import { Group, PageHeader, Segmented } from '../../ui/page'
 import { LANGUAGE_NAME, UI } from '../../ui/strings'
 import { useBackToClose } from '../../ui/useBackToClose'
-import { phrase, speak, type Lang } from '../speech/speech'
+import { announce, type Lang } from '../speech/speech'
 
 type Props = {
   open: boolean
@@ -54,16 +54,16 @@ export function SetupDialog({ open, lang, sosNumber, onLang, onClose, onDone }: 
     if (open) setStep(0)
   }, [open])
   useEffect(() => {
-    if (open) void speak(phrase('setupIntro', lang), lang)
+    if (open) announce('setupIntro', lang)
   }, [open, lang])
 
   const install = async () => {
     await openVoiceInstall()
     setStep(1)
-    void speak(phrase('voicesInstalled', lang), lang)
+    announce('voicesInstalled', lang)
   }
   const test = () => {
-    void speak(phrase('voiceTest', lang), lang)
+    announce('voiceTest', lang)
     setStep(2)
   }
   const finish = async () => {
@@ -71,7 +71,7 @@ export function SetupDialog({ open, lang, sosNumber, onLang, onClose, onDone }: 
     // Save first, so setup is complete even if a system prompt is never answered.
     onDone(saved)
     if (saved) await requestSosPermissions()
-    void speak(phrase('setupDone', lang), lang)
+    announce('setupDone', lang)
   }
 
   return (
