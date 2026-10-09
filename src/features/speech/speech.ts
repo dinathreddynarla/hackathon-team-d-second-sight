@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core'
 
 import type { TargetClass } from '../vision/detector'
 import type { Side, Target } from '../vision/distance'
+import { vibrate } from '../../native/vibrate.ts'
 
 // Languages with a full sentence table. A language appears in the app only when its voice is installed on the phone.
 export const LANGS = ['en', 'te', 'hi', 'ta', 'kn'] as const
@@ -782,6 +783,6 @@ export function warn(t: Target, lang: Lang, now: number): string | null {
   announced.set(t.label, { side: t.side, bucket, tier, t: now, distance: t.distance })
   const text = sentence(t, lang)
   void speak(text, lang, urgent, `${t.label}:${t.side}`)
-  if (t.distance < 3) navigator.vibrate?.(200)
+  if (t.distance < 3) vibrate(200)
   return text
 }

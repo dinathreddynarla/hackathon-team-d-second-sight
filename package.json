@@ -21,6 +21,7 @@
     "@capacitor/android": "^8.5.3",
     "@capacitor/core": "^8.5.3",
     "@capacitor/geolocation": "^8.2.3",
+    "@capacitor/haptics": "^8.0.2",
     "@capacitor/motion": "^8.0.1",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
